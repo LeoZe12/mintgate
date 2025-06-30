@@ -9,7 +9,63 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      esp32_config: {
+        Row: {
+          config_key: string
+          config_value: string
+          created_at: string
+          device_id: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          config_key: string
+          config_value: string
+          created_at?: string
+          device_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          config_key?: string
+          config_value?: string
+          created_at?: string
+          device_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      esp32_status_history: {
+        Row: {
+          created_at: string
+          device_id: string
+          id: string
+          is_loading: boolean | null
+          last_heartbeat: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          device_id?: string
+          id?: string
+          is_loading?: boolean | null
+          last_heartbeat?: string | null
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          id?: string
+          is_loading?: boolean | null
+          last_heartbeat?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
