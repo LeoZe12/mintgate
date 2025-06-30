@@ -1,5 +1,5 @@
 
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { jest } from '@jest/globals';
 import { useEsp32Status } from '../useEsp32Status';

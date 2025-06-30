@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { Settings, Save, Camera, Cpu, Network, Key } from 'lucide-react';
-import { ESP32_CONFIG, Esp32ConfigType, validateConfig } from '@/config/esp32Config';
+import { ESP32_CONFIG, Esp32ConfigType, updateConfig } from '@/config/esp32Config';
 
 export const SystemConfig: React.FC = () => {
   const [config, setConfig] = useState<Esp32ConfigType>(ESP32_CONFIG);
@@ -33,25 +33,18 @@ export const SystemConfig: React.FC = () => {
   };
 
   const handleSave = async () => {
-    // Validar configurações antes de salvar
-    if (!validateConfig(config)) {
-      toast({
-        title: "Erro de Validação",
-        description: "Verifique as configurações inseridas.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    
     try {
+      // Validar configurações usando o sistema de validação
+      const validatedConfig = updateConfig(config);
+      
+      setIsLoading(true);
+      
       const response = await fetch('/api/esp32/config', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(config),
+        body: JSON.stringify(validatedConfig),
       });
 
       if (response.ok) {
@@ -64,8 +57,8 @@ export const SystemConfig: React.FC = () => {
       }
     } catch (error) {
       toast({
-        title: "Erro",
-        description: "Falha ao salvar as configurações.",
+        title: "Erro de Validação",
+        description: error instanceof Error ? error.message : "Verifique as configurações inseridas.",
         variant: "destructive",
       });
     } finally {
@@ -73,7 +66,7 @@ export const SystemConfig: React.FC = () => {
     }
   };
 
-  const updateConfig = (section: keyof Esp32ConfigType, key: string, value: any) => {
+  const updateConfigValue = (section: keyof Esp32ConfigType, key: string, value: any) => {
     setConfig(prev => ({
       ...prev,
       [section]: {
@@ -102,7 +95,7 @@ export const SystemConfig: React.FC = () => {
                 id="esp32-ip"
                 type="text"
                 value={config.esp32.ipAddress}
-                onChange={(e) => updateConfig('esp32', 'ipAddress', e.target.value)}
+                onChange={(e) => updateConfigValue('esp32', 'ipAddress', e.target.value)}
                 placeholder="192.168.1.100"
               />
             </div>
@@ -111,9 +104,11 @@ export const SystemConfig: React.FC = () => {
               <Label htmlFor="esp32-port">Porta do ESP32</Label>
               <Input
                 id="esp32-port"
-                type="text"
+                type="number"
+                min="1"
+                max="65535"
                 value={config.esp32.port}
-                onChange={(e) => updateConfig('esp32', 'port', e.target.value)}
+                onChange={(e) => updateConfigValue('esp32', 'port', parseInt(e.target.value) || 80)}
                 placeholder="80"
               />
             </div>
@@ -127,9 +122,11 @@ export const SystemConfig: React.FC = () => {
               <Label htmlFor="external-loop">Porta Laço Externo</Label>
               <Input
                 id="external-loop"
-                type="text"
+                type="number"
+                min="0"
+                max="39"
                 value={config.gpio.externalLoopPort}
-                onChange={(e) => updateConfig('gpio', 'externalLoopPort', e.target.value)}
+                onChange={(e) => updateConfigValue('gpio', 'externalLoopPort', parseInt(e.target.value) || 2)}
                 placeholder="2"
               />
             </div>
@@ -138,9 +135,11 @@ export const SystemConfig: React.FC = () => {
               <Label htmlFor="internal-loop">Porta Laço Interno</Label>
               <Input
                 id="internal-loop"
-                type="text"
+                type="number"
+                min="0"
+                max="39"
                 value={config.gpio.internalLoopPort}
-                onChange={(e) => updateConfig('gpio', 'internalLoopPort', e.target.value)}
+                onChange={(e) => updateConfigValue('gpio', 'internalLoopPort', parseInt(e.target.value) || 3)}
                 placeholder="3"
               />
             </div>
@@ -149,9 +148,11 @@ export const SystemConfig: React.FC = () => {
               <Label htmlFor="gate-control">Porta Controle Portão</Label>
               <Input
                 id="gate-control"
-                type="text"
+                type="number"
+                min="0"
+                max="39"
                 value={config.gpio.gateControlPort}
-                onChange={(e) => updateConfig('gpio', 'gateControlPort', e.target.value)}
+                onChange={(e) => updateConfigValue('gpio', 'gateControlPort', parseInt(e.target.value) || 4)}
                 placeholder="4"
               />
             </div>
@@ -166,8 +167,9 @@ export const SystemConfig: React.FC = () => {
               <Input
                 id="polling"
                 type="number"
+                min="1000"
                 value={config.esp32.pollingInterval}
-                onChange={(e) => updateConfig('esp32', 'pollingInterval', parseInt(e.target.value))}
+                onChange={(e) => updateConfigValue('esp32', 'pollingInterval', parseInt(e.target.value) || 5000)}
               />
             </div>
 
@@ -179,7 +181,7 @@ export const SystemConfig: React.FC = () => {
                 min="1"
                 max="10"
                 value={config.esp32.maxRetries}
-                onChange={(e) => updateConfig('esp32', 'maxRetries', parseInt(e.target.value))}
+                onChange={(e) => updateConfigValue('esp32', 'maxRetries', parseInt(e.target.value) || 3)}
               />
             </div>
           </div>
@@ -190,7 +192,7 @@ export const SystemConfig: React.FC = () => {
               <Switch
                 id="auto-reconnect"
                 checked={config.esp32.autoReconnect}
-                onCheckedChange={(checked) => updateConfig('esp32', 'autoReconnect', checked)}
+                onCheckedChange={(checked) => updateConfigValue('esp32', 'autoReconnect', checked)}
               />
             </div>
 
@@ -199,7 +201,7 @@ export const SystemConfig: React.FC = () => {
               <Switch
                 id="debug-mode"
                 checked={config.esp32.debugMode}
-                onCheckedChange={(checked) => updateConfig('esp32', 'debugMode', checked)}
+                onCheckedChange={(checked) => updateConfigValue('esp32', 'debugMode', checked)}
               />
             </div>
           </div>
@@ -222,7 +224,7 @@ export const SystemConfig: React.FC = () => {
               id="camera-url"
               type="url"
               value={config.camera.url}
-              onChange={(e) => updateConfig('camera', 'url', e.target.value)}
+              onChange={(e) => updateConfigValue('camera', 'url', e.target.value)}
               placeholder="http://192.168.1.101:8080/video"
             />
             <p className="text-sm text-muted-foreground">
@@ -242,26 +244,31 @@ export const SystemConfig: React.FC = () => {
         </CardHeader>
         
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="api-key">API Key</Label>
-            <Input
-              id="api-key"
-              type="password"
-              value={config.platRecognizer.apiKey}
-              onChange={(e) => updateConfig('platRecognizer', 'apiKey', e.target.value)}
-              placeholder="Sua API Key do PlatRecognizer"
-            />
+          <div className="bg-yellow-50 p-4 rounded-lg">
+            <h4 className="font-medium text-yellow-900 mb-2">⚠️ Configuração via Variáveis de Ambiente</h4>
+            <p className="text-sm text-yellow-800">
+              Por questões de segurança, as credenciais do PlatRecognizer devem ser configuradas como variáveis de ambiente:
+            </p>
+            <ul className="text-sm text-yellow-800 mt-2 space-y-1">
+              <li>• <code>PLATERECOGNIZER_API_KEY</code> - Sua API Key</li>
+              <li>• <code>PLATERECOGNIZER_LICENSE_KEY</code> - Sua License Key</li>
+            </ul>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="license-key">License Key</Label>
-            <Input
-              id="license-key"
-              type="password"
-              value={config.platRecognizer.licenseKey}
-              onChange={(e) => updateConfig('platRecognizer', 'licenseKey', e.target.value)}
-              placeholder="Sua License Key do PlatRecognizer"
-            />
+            <Label>Status das Credenciais</Label>
+            <div className="grid grid-cols-2 gap-4">
+              <div className={`p-3 rounded-lg border ${config.platRecognizer.apiKey ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                <p className={`text-sm font-medium ${config.platRecognizer.apiKey ? 'text-green-800' : 'text-red-800'}`}>
+                  API Key: {config.platRecognizer.apiKey ? '✓ Configurada' : '✗ Não configurada'}
+                </p>
+              </div>
+              <div className={`p-3 rounded-lg border ${config.platRecognizer.licenseKey ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                <p className={`text-sm font-medium ${config.platRecognizer.licenseKey ? 'text-green-800' : 'text-red-800'}`}>
+                  License Key: {config.platRecognizer.licenseKey ? '✓ Configurada' : '✗ Não configurada'}
+                </p>
+              </div>
+            </div>
           </div>
 
           <p className="text-sm text-muted-foreground">
@@ -292,18 +299,6 @@ export const SystemConfig: React.FC = () => {
         )}
         Salvar Todas as Configurações
       </Button>
-
-      <div className="bg-blue-50 p-4 rounded-lg">
-        <h4 className="font-medium text-blue-900 mb-2">Como Usar</h4>
-        <p className="text-sm text-blue-800">
-          Para alterar configurações em todo o sistema, você pode:
-        </p>
-        <ul className="text-sm text-blue-800 mt-2 space-y-1">
-          <li>• Modificar este formulário e salvar</li>
-          <li>• Editar diretamente o arquivo <code>src/config/esp32Config.ts</code></li>
-          <li>• As mudanças serão aplicadas automaticamente em todo o sistema</li>
-        </ul>
-      </div>
     </div>
   );
 };

@@ -1,78 +1,258 @@
 
-# Sistema de Configuração Centralizado
+# Sistema de Configuração Centralizado ESP32
 
-Este sistema permite modificar facilmente todas as configurações do ESP32 em um local centralizado.
+Este sistema de configuração foi completamente refatorado para oferecer maior robustez, validação de tipos e flexibilidade para diferentes ambientes.
 
-## Como Usar
+## 🚀 Principais Melhorias
 
-### 1. Modificar Configurações via Interface
+### ✅ Schema de Validação com Zod
+- Validação automática de todos os campos de configuração
+- Tipos TypeScript gerados automaticamente
+- Mensagens de erro claras e específicas
+- Validação em tempo de build e runtime
+
+### ✅ Configuração por Ambiente
+- Arquivos separados para base, desenvolvimento e produção
+- Merge inteligente de configurações usando Lodash
+- Detecção automática do ambiente (`development` vs `production`)
+
+### ✅ Segurança de Credenciais
+- Credenciais do PlatRecognizer movidas para variáveis de ambiente
+- Não há mais credenciais hard-coded no código
+- Suporte a `.env` files e variáveis do sistema
+
+### ✅ Tipos Seguros
+- Portas convertidas de `string` para `number`
+- Validação de ranges (portas 1-65535, GPIO 0-39, etc.)
+- Enums para valores específicos (tema, qualidade, formato)
+
+### ✅ Testes Automatizados
+- Cobertura completa de testes unitários
+- Validação de cenários válidos e inválidos
+- Testes de integração do sistema de configuração
+
+## 📁 Estrutura de Arquivos
+
+```
+src/config/
+├── schema.ts              # Schema Zod e tipos TypeScript
+├── esp32Config.base.ts    # Configuração base (padrões)
+├── esp32Config.dev.ts     # Overrides para desenvolvimento
+├── esp32Config.prod.ts    # Overrides para produção
+├── esp32Config.ts         # Configuração final compilada
+├── README.md              # Esta documentação
+└── __tests__/
+    └── esp32Config.test.ts # Testes unitários
+```
+
+## 🔧 Como Usar
+
+### 1. Configuração via Variáveis de Ambiente
+
+Crie um arquivo `.env` na raiz do projeto:
+
+```env
+# PlatRecognizer Credentials
+PLATERECOGNIZER_API_KEY=your_api_key_here
+PLATERECOGNIZER_LICENSE_KEY=your_license_key_here
+
+# Opcional: Override outras configurações
+VITE_ESP32_IP=192.168.1.100
+VITE_ESP32_PORT=80
+VITE_CAMERA_URL=http://192.168.1.101:8080/video
+```
+
+### 2. Configuração via Código
+
+```typescript
+import { ESP32_CONFIG, updateConfig } from '@/config/esp32Config';
+
+// Usar configuração atual
+const currentIP = ESP32_CONFIG.esp32.ipAddress;
+const pollingInterval = ESP32_CONFIG.esp32.pollingInterval;
+
+// Atualizar configuração em runtime
+const newConfig = updateConfig({
+  esp32: {
+    debugMode: true,
+    pollingInterval: 3000
+  }
+});
+```
+
+### 3. Configuração via Interface
+
 - Acesse a aba "Configuração" no dashboard
 - Altere os valores desejados
 - Clique em "Salvar Todas as Configurações"
 
-### 2. Modificar Configurações via Código
-- Edite o arquivo `src/config/esp32Config.ts`
-- Modifique os valores no objeto `ESP32_CONFIG`
-- As mudanças serão aplicadas automaticamente em todo o sistema
+## 🏗️ Configuração por Ambiente
 
-## Estrutura de Configuração
+### Base (`esp32Config.base.ts`)
+Configurações padrão compartilhadas entre todos os ambientes.
 
+### Desenvolvimento (`esp32Config.dev.ts`)
 ```typescript
-export const ESP32_CONFIG = {
+export const DEV_CONFIG = {
   esp32: {
-    ipAddress: '192.168.1.100',    // IP do ESP32 na rede local
-    port: '80',                     // Porta do ESP32
-    pollingInterval: 5000,          // Intervalo de polling em ms
-    // ... outras configurações
+    debugMode: true,           // Logs detalhados
+    pollingInterval: 2000,     // Polling mais frequente
   },
-  
-  gpio: {
-    externalLoopPort: '2',          // Porta do laço externo
-    internalLoopPort: '3',          // Porta do laço interno
-    gateControlPort: '4',           // Porta de controle do portão
-  },
-  
-  camera: {
-    url: 'http://192.168.1.101:8080/video',  // URL da câmera
-    // ... outras configurações
-  },
-  
-  platRecognizer: {
-    apiKey: '',                     // API Key do PlatRecognizer
-    licenseKey: '',                 // License Key do PlatRecognizer
-    // ... outras configurações
+  ui: {
+    showDebugInfo: true,       // Mostrar informações de debug
+    refreshRate: 500,          // UI mais responsiva
   }
 };
 ```
 
-## Arquivos que Usam a Configuração
-
-- `src/hooks/useEsp32Status.ts` - Hook principal do ESP32
-- `src/components/SystemConfig.tsx` - Interface de configuração
-- Qualquer novo componente pode importar e usar as configurações
-
-## Exemplo de Uso
-
+### Produção (`esp32Config.prod.ts`)
 ```typescript
-import { ESP32_CONFIG, getApiUrl, getEsp32Url } from '@/config/esp32Config';
-
-// Usar configuração
-const pollingInterval = ESP32_CONFIG.esp32.pollingInterval;
-const apiUrl = getApiUrl('status');
-const esp32Url = getEsp32Url('/gpio/status');
+export const PROD_CONFIG = {
+  esp32: {
+    debugMode: false,          // Sem logs desnecessários
+    pollingInterval: 10000,    // Polling menos frequente
+    timeout: 8000,             // Timeout maior para rede
+  },
+  ui: {
+    showDebugInfo: false,      // Sem informações de debug
+    refreshRate: 2000,         // UI menos frequente
+  }
+};
 ```
 
-## Validação
+## 📋 Schema de Configuração
 
-O sistema inclui validação automática das configurações:
-- IP válido
-- Porta válida (1-65535)
-- URL da câmera válida
+### ESP32
+```typescript
+esp32: {
+  ipAddress: string (IP válido),
+  port: number (1-65535),
+  maxRetries: number (1-10),
+  timeout: number (min 1000ms),
+  pollingInterval: number (min 1000ms),
+  autoReconnect: boolean,
+  debugMode: boolean
+}
+```
 
-## Benefícios
+### GPIO
+```typescript
+gpio: {
+  externalLoopPort: number (0-39),
+  internalLoopPort: number (0-39),
+  gateControlPort: number (0-39)
+}
+```
 
-1. **Centralização**: Todas as configurações em um local
-2. **Facilidade**: Mudanças rápidas sem procurar em vários arquivos
-3. **Consistência**: Mesmas configurações em todo o código
-4. **Validação**: Configurações são validadas antes de serem salvas
-5. **Flexibilidade**: Interface gráfica ou edição direta do código
+### Câmera
+```typescript
+camera: {
+  url: string (URL válida),
+  streamFormat: 'mjpeg' | 'rtsp' | 'http',
+  quality: 'low' | 'medium' | 'high',
+  fps: number (1-60)
+}
+```
+
+### PlatRecognizer
+```typescript
+platRecognizer: {
+  apiKey: string (obrigatório),
+  licenseKey: string (obrigatório),
+  apiUrl: string (URL válida),
+  confidenceThreshold: number (0-1),
+  regions: string[]
+}
+```
+
+## 🔍 Validação e Debugging
+
+### Validação Automática
+```typescript
+import { validateConfig } from '@/config/esp32Config';
+
+try {
+  const config = validateConfig(userInput);
+  console.log('Configuração válida:', config);
+} catch (error) {
+  console.error('Erro de validação:', error.message);
+}
+```
+
+### Debug Mode
+Quando `debugMode: true`, o sistema exibe:
+- Configuração carregada no console
+- Ambiente detectado
+- Status das credenciais
+- Logs detalhados das operações
+
+## 🧪 Executar Testes
+
+```bash
+# Executar todos os testes
+npm test
+
+# Executar apenas testes de configuração
+npm test -- src/config
+
+# Executar com coverage
+npm run test:coverage
+```
+
+## 🔧 Funções Utilitárias
+
+```typescript
+import { 
+  getApiUrl, 
+  getEsp32Url, 
+  updateConfig, 
+  resetConfig 
+} from '@/config/esp32Config';
+
+// URLs da API
+const statusUrl = getApiUrl('status');
+const esp32Url = getEsp32Url('/gpio/status');
+
+// Gerenciamento de configuração
+const newConfig = updateConfig({ esp32: { debugMode: true } });
+const defaultConfig = resetConfig();
+```
+
+## 🚨 Solução de Problemas
+
+### Erro: "API Key é obrigatória"
+Configure as variáveis de ambiente:
+```bash
+PLATERECOGNIZER_API_KEY=your_key_here
+PLATERECOGNIZER_LICENSE_KEY=your_license_here
+```
+
+### Erro: "Porta deve estar entre 1 e 65535"
+Verifique se a porta do ESP32 está no range válido.
+
+### Erro: "URL da câmera inválida"
+Certifique-se de que a URL da câmera está no formato correto:
+```
+http://192.168.1.101:8080/video
+```
+
+### Erro: "Porta GPIO deve estar entre 0 e 39"
+As portas GPIO do ESP32 devem estar no range 0-39.
+
+## 📚 Links Úteis
+
+- [PlatRecognizer API](https://platerecognizer.com/)
+- [ESP32 GPIO Reference](https://randomnerdtutorials.com/esp32-pinout-reference-gpios/)
+- [Zod Documentation](https://zod.dev/)
+- [Lodash Merge](https://lodash.com/docs/4.17.15#merge)
+
+## 🔄 Migração da Versão Anterior
+
+O sistema é totalmente compatível com o anterior. As principais mudanças:
+
+1. **Portas agora são `number`** ao invés de `string`
+2. **Credenciais movidas para variáveis de ambiente**
+3. **Validação automática** com mensagens de erro claras
+4. **Configuração por ambiente** automática
+
+Não é necessário alterar código existente que usa `ESP32_CONFIG`.

@@ -9,6 +9,24 @@ export interface Esp32Status {
   isLoading: boolean;
 }
 
+// Função helper para timeout manual
+const fetchWithTimeout = async (url: string, options: RequestInit, timeout: number): Promise<Response> => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
+};
+
 export const useEsp32Status = () => {
   const [status, setStatus] = useState<Esp32Status>({
     status: 'disconnected',
@@ -51,10 +69,11 @@ export const useEsp32Status = () => {
     try {
       await updateStatus({ isLoading: true });
       
-      const response = await fetch(getApiUrl('status'), {
-        method: 'GET',
-        timeout: ESP32_CONFIG.esp32.timeout,
-      });
+      const response = await fetchWithTimeout(
+        getApiUrl('status'), 
+        { method: 'GET' },
+        ESP32_CONFIG.esp32.timeout
+      );
       
       if (response.ok) {
         const data = await response.json();
@@ -85,10 +104,11 @@ export const useEsp32Status = () => {
     try {
       await updateStatus({ isLoading: true });
       
-      const response = await fetch(getApiUrl('open'), { 
-        method: 'POST',
-        timeout: ESP32_CONFIG.esp32.timeout,
-      });
+      const response = await fetchWithTimeout(
+        getApiUrl('open'), 
+        { method: 'POST' },
+        ESP32_CONFIG.esp32.timeout
+      );
       
       if (response.ok) {
         await updateStatus({ isLoading: false });
@@ -116,10 +136,11 @@ export const useEsp32Status = () => {
     try {
       await updateStatus({ isLoading: true });
       
-      const response = await fetch(getApiUrl('close'), { 
-        method: 'POST',
-        timeout: ESP32_CONFIG.esp32.timeout,
-      });
+      const response = await fetchWithTimeout(
+        getApiUrl('close'), 
+        { method: 'POST' },
+        ESP32_CONFIG.esp32.timeout
+      );
       
       if (response.ok) {
         await updateStatus({ isLoading: false });
