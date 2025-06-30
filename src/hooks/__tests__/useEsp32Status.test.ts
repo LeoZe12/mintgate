@@ -14,7 +14,7 @@ jest.mock('@/integrations/supabase/client', () => ({
 }));
 
 // Mock do fetch global
-global.fetch = jest.fn();
+global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
 
 describe('useEsp32Status Hook', () => {
   beforeEach(() => {
@@ -43,9 +43,9 @@ describe('useEsp32Status Hook', () => {
       json: jest.fn().mockResolvedValue({
         lastHeartbeat: '2024-01-01T12:00:00Z'
       })
-    };
+    } as any;
     
-    (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
+    (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue(mockResponse);
 
     const { result } = renderHook(() => useEsp32Status());
 
@@ -64,9 +64,9 @@ describe('useEsp32Status Hook', () => {
       json: jest.fn().mockResolvedValue({
         lastHeartbeat: '2024-01-01T12:00:00Z'
       })
-    };
+    } as any;
     
-    (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
+    (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue(mockResponse);
 
     renderHook(() => useEsp32Status());
 
@@ -88,9 +88,9 @@ describe('useEsp32Status Hook', () => {
       json: jest.fn().mockResolvedValue({
         lastHeartbeat: '2024-01-01T12:00:00Z'
       })
-    };
+    } as any;
     
-    (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
+    (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue(mockResponse);
 
     renderHook(() => useEsp32Status());
 
@@ -117,8 +117,8 @@ describe('useEsp32Status Hook', () => {
   });
 
   it('chama API de abrir portão corretamente', async () => {
-    const mockResponse = { ok: true };
-    (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
+    const mockResponse = { ok: true } as any;
+    (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue(mockResponse);
 
     const { result } = renderHook(() => useEsp32Status());
 
@@ -130,8 +130,8 @@ describe('useEsp32Status Hook', () => {
   });
 
   it('chama API de fechar portão corretamente', async () => {
-    const mockResponse = { ok: true };
-    (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
+    const mockResponse = { ok: true } as any;
+    (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue(mockResponse);
 
     const { result } = renderHook(() => useEsp32Status());
 
@@ -143,7 +143,7 @@ describe('useEsp32Status Hook', () => {
   });
 
   it('trata erro de rede corretamente', async () => {
-    (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
+    (global.fetch as jest.MockedFunction<typeof fetch>).mockRejectedValue(new Error('Network error'));
 
     const { result } = renderHook(() => useEsp32Status());
 
