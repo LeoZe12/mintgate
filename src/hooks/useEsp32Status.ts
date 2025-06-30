@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { ESP32_CONFIG, getApiUrl } from '@/config/esp32Config';
 
 export interface Esp32Status {
   status: 'connected' | 'disconnected' | 'error';
@@ -26,6 +27,10 @@ export const useEsp32Status = () => {
           last_heartbeat: newStatus.lastHeartbeat ? new Date(newStatus.lastHeartbeat).toISOString() : null,
           is_loading: newStatus.isLoading
         });
+      
+      if (ESP32_CONFIG.esp32.debugMode) {
+        console.log('Status persistido no Supabase:', newStatus);
+      }
     } catch (error) {
       console.error('Erro ao persistir status no Supabase:', error);
     }
@@ -46,7 +51,10 @@ export const useEsp32Status = () => {
     try {
       await updateStatus({ isLoading: true });
       
-      const response = await fetch('/api/esp32/status');
+      const response = await fetch(getApiUrl('status'), {
+        method: 'GET',
+        timeout: ESP32_CONFIG.esp32.timeout,
+      });
       
       if (response.ok) {
         const data = await response.json();
@@ -62,7 +70,9 @@ export const useEsp32Status = () => {
         });
       }
     } catch (error) {
-      console.error('Erro ao buscar status do ESP32:', error);
+      if (ESP32_CONFIG.esp32.debugMode) {
+        console.error('Erro ao buscar status do ESP32:', error);
+      }
       await updateStatus({
         status: 'disconnected',
         isLoading: false
@@ -75,7 +85,10 @@ export const useEsp32Status = () => {
     try {
       await updateStatus({ isLoading: true });
       
-      const response = await fetch('/api/esp32/open', { method: 'POST' });
+      const response = await fetch(getApiUrl('open'), { 
+        method: 'POST',
+        timeout: ESP32_CONFIG.esp32.timeout,
+      });
       
       if (response.ok) {
         await updateStatus({ isLoading: false });
@@ -88,7 +101,9 @@ export const useEsp32Status = () => {
         });
       }
     } catch (error) {
-      console.error('Erro ao abrir portão:', error);
+      if (ESP32_CONFIG.esp32.debugMode) {
+        console.error('Erro ao abrir portão:', error);
+      }
       await updateStatus({
         status: 'error',
         isLoading: false
@@ -101,7 +116,10 @@ export const useEsp32Status = () => {
     try {
       await updateStatus({ isLoading: true });
       
-      const response = await fetch('/api/esp32/close', { method: 'POST' });
+      const response = await fetch(getApiUrl('close'), { 
+        method: 'POST',
+        timeout: ESP32_CONFIG.esp32.timeout,
+      });
       
       if (response.ok) {
         await updateStatus({ isLoading: false });
@@ -114,7 +132,9 @@ export const useEsp32Status = () => {
         });
       }
     } catch (error) {
-      console.error('Erro ao fechar portão:', error);
+      if (ESP32_CONFIG.esp32.debugMode) {
+        console.error('Erro ao fechar portão:', error);
+      }
       await updateStatus({
         status: 'error',
         isLoading: false
@@ -122,11 +142,11 @@ export const useEsp32Status = () => {
     }
   }, [updateStatus, fetchStatus]);
 
-  // Configurar polling a cada 5 segundos
+  // Configurar polling usando o intervalo da configuração
   useEffect(() => {
     fetchStatus(); // Buscar status inicial
     
-    const interval = setInterval(fetchStatus, 5000);
+    const interval = setInterval(fetchStatus, ESP32_CONFIG.esp32.pollingInterval);
     
     return () => clearInterval(interval);
   }, [fetchStatus]);
