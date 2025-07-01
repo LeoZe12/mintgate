@@ -32,9 +32,13 @@ export const usePlateRecognizer = () => {
     
     // Configurar headers baseado no modo
     if (useOffline) {
-      // SDK Offline não requer Authorization header
+      // SDK Offline usa API Token se disponível
+      if (ESP32_CONFIG.platRecognizerOffline.apiToken) {
+        headers['Authorization'] = `Token ${ESP32_CONFIG.platRecognizerOffline.apiToken}`;
+      }
       if (ESP32_CONFIG.esp32.debugMode) {
         console.log('🔍 Usando Plate Recognizer SDK Offline:', endpoint);
+        console.log('🔑 API Token configurado:', !!ESP32_CONFIG.platRecognizerOffline.apiToken);
       }
     } else {
       // API Online requer token de autorização
@@ -120,7 +124,9 @@ export const usePlateRecognizer = () => {
         : ESP32_CONFIG.platRecognizer.apiUrl.replace('/v1/plate-reader/', '/');
       
       const headers: Record<string, string> = {};
-      if (!useOffline) {
+      if (useOffline && ESP32_CONFIG.platRecognizerOffline.apiToken) {
+        headers['Authorization'] = `Token ${ESP32_CONFIG.platRecognizerOffline.apiToken}`;
+      } else if (!useOffline) {
         headers['Authorization'] = `Token ${ESP32_CONFIG.platRecognizer.apiKey}`;
       }
       

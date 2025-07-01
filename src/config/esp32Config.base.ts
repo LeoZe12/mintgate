@@ -37,7 +37,8 @@ export const BASE_CONFIG: Esp32ConfigType = {
   platRecognizerOffline: {
     enabled: import.meta.env.VITE_PLATERECOGNIZER_OFFLINE_ENABLED === 'true',
     endpoint: import.meta.env.VITE_PLATERECOGNIZER_OFFLINE_ENDPOINT || 'http://localhost:8081/v1/plate-reader/',
-    licenseKey: import.meta.env.VITE_PLATERECOGNIZER_OFFLINE_LICENSE_KEY || '',
+    licenseKey: import.meta.env.VITE_PLATERECOGNIZER_OFFLINE_LICENSE_KEY || 'TrHEk9pKez',
+    apiToken: import.meta.env.VITE_PLATERECOGNIZER_OFFLINE_API_TOKEN || '3c545cd3eddd8323e580b39f8c0aaead7935f62c',
   },
   
   api: {

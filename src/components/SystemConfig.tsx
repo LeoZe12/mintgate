@@ -359,11 +359,41 @@ export const SystemConfig: React.FC = () => {
                   type="text"
                   value={config.platRecognizerOffline.licenseKey}
                   onChange={(e) => updateConfigValue('platRecognizerOffline', 'licenseKey', e.target.value)}
-                  placeholder="Sua License Key para SDK Offline"
+                  placeholder="TrHEk9pKez"
                 />
                 <p className="text-sm text-muted-foreground">
                   License Key específica para uso com o SDK Offline
                 </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="offline-api-token">API Token Offline</Label>
+                <Input
+                  id="offline-api-token"
+                  type="text"
+                  value={config.platRecognizerOffline.apiToken}
+                  onChange={(e) => updateConfigValue('platRecognizerOffline', 'apiToken', e.target.value)}
+                  placeholder="3c545cd3eddd8323e580b39f8c0aaead7935f62c"
+                />
+                <p className="text-sm text-muted-foreground">
+                  Token de API para autenticação com o SDK Offline
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Status das Credenciais Offline</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className={`p-3 rounded-lg border ${config.platRecognizerOffline.licenseKey ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                    <p className={`text-sm font-medium ${config.platRecognizerOffline.licenseKey ? 'text-green-800' : 'text-red-800'}`}>
+                      License Key: {config.platRecognizerOffline.licenseKey ? '✓ Configurada' : '✗ Não configurada'}
+                    </p>
+                  </div>
+                  <div className={`p-3 rounded-lg border ${config.platRecognizerOffline.apiToken ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                    <p className={`text-sm font-medium ${config.platRecognizerOffline.apiToken ? 'text-green-800' : 'text-red-800'}`}>
+                      API Token: {config.platRecognizerOffline.apiToken ? '✓ Configurado' : '✗ Não configurado'}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="bg-blue-50 p-4 rounded-lg">
