@@ -34,6 +34,12 @@ export const BASE_CONFIG: Esp32ConfigType = {
     regions: ['br'], // Brasil
   },
   
+  platRecognizerOffline: {
+    enabled: import.meta.env.VITE_PLATERECOGNIZER_OFFLINE_ENABLED === 'true',
+    endpoint: import.meta.env.VITE_PLATERECOGNIZER_OFFLINE_ENDPOINT || 'http://localhost:8081/v1/plate-reader/',
+    licenseKey: import.meta.env.VITE_PLATERECOGNIZER_OFFLINE_LICENSE_KEY || '',
+  },
+  
   api: {
     baseUrl: '/api/esp32',
     endpoints: {

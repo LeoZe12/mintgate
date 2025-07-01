@@ -1,0 +1,17 @@
+
+{
+  "scripts_to_add": {
+    "pr-sdk:install": "chmod +x scripts/install-pr-sdk.sh && ./scripts/install-pr-sdk.sh",
+    "pr-sdk:start": "chmod +x scripts/manage-pr-sdk.sh && ./scripts/manage-pr-sdk.sh start",
+    "pr-sdk:stop": "chmod +x scripts/manage-pr-sdk.sh && ./scripts/manage-pr-sdk.sh stop",
+    "pr-sdk:restart": "chmod +x scripts/manage-pr-sdk.sh && ./scripts/manage-pr-sdk.sh restart",
+    "pr-sdk:status": "chmod +x scripts/manage-pr-sdk.sh && ./scripts/manage-pr-sdk.sh status",
+    "pr-sdk:logs": "chmod +x scripts/manage-pr-sdk.sh && ./scripts/manage-pr-sdk.sh logs",
+    "pr-sdk:remove": "chmod +x scripts/manage-pr-sdk.sh && ./scripts/manage-pr-sdk.sh remove"
+  },
+  "instructions": [
+    "Adicione os scripts acima ao seu package.json na seção 'scripts'",
+    "Isso permitirá gerenciar o Plate Recognizer SDK Offline facilmente",
+    "Uso: npm run pr-sdk:install para instalar o SDK via Docker"
+  ]
+}

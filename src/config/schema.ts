@@ -34,6 +34,21 @@ export const Esp32ConfigSchema = z.object({
     regions: z.array(z.string()),
   }),
   
+  platRecognizerOffline: z.object({
+    enabled: z.boolean(),
+    endpoint: z.string().url('URL do endpoint offline inválida'),
+    licenseKey: z.string(),
+  }).refine((data) => {
+    // Se habilitado, licenseKey deve ser obrigatória
+    if (data.enabled && data.licenseKey.trim().length === 0) {
+      return false;
+    }
+    return true;
+  }, {
+    message: 'License Key é obrigatória quando o modo offline está habilitado',
+    path: ['licenseKey'],
+  }),
+  
   api: z.object({
     baseUrl: z.string(),
     endpoints: z.object({

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,13 +6,16 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, Save, Camera, Cpu, Network, Key } from 'lucide-react';
+import { Settings, Save, Camera, Cpu, Network, Key, Server, TestTube } from 'lucide-react';
 import { ESP32_CONFIG, Esp32ConfigType, updateConfig } from '@/config/esp32Config';
+import { usePlateRecognizer } from '@/hooks/usePlateRecognizer';
 
 export const SystemConfig: React.FC = () => {
   const [config, setConfig] = useState<Esp32ConfigType>(ESP32_CONFIG);
   const [isLoading, setIsLoading] = useState(false);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
   const { toast } = useToast();
+  const { testConnection } = usePlateRecognizer();
 
   // Carregar configurações salvas
   useEffect(() => {
@@ -63,6 +65,29 @@ export const SystemConfig: React.FC = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    setIsTestingConnection(true);
+    try {
+      const isConnected = await testConnection();
+      
+      toast({
+        title: isConnected ? "Conexão bem-sucedida" : "Falha na conexão",
+        description: isConnected 
+          ? "O Plate Recognizer está respondendo corretamente."
+          : "Não foi possível conectar ao Plate Recognizer. Verifique as configurações.",
+        variant: isConnected ? "default" : "destructive",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro no teste",
+        description: "Erro ao testar a conexão com o Plate Recognizer.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTestingConnection(false);
     }
   };
 
@@ -234,12 +259,12 @@ export const SystemConfig: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Configurações do PlatRecognizer */}
+      {/* Configurações do PlatRecognizer Online */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Key className="h-5 w-5" />
-            Configurações do PlatRecognizer
+            <Network className="h-5 w-5" />
+            Configurações do PlatRecognizer Online
           </CardTitle>
         </CardHeader>
         
@@ -282,6 +307,93 @@ export const SystemConfig: React.FC = () => {
               platerecognizer.com
             </a>
           </p>
+        </CardContent>
+      </Card>
+
+      {/* Configurações do PlatRecognizer Offline */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Server className="h-5 w-5" />
+            Configurações do PlatRecognizer Offline SDK
+          </CardTitle>
+        </CardHeader>
+        
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="offline-enabled">Habilitar SDK Offline</Label>
+              <p className="text-sm text-muted-foreground">
+                Use o SDK local ao invés da API online
+              </p>
+            </div>
+            <Switch
+              id="offline-enabled"
+              checked={config.platRecognizerOffline.enabled}
+              onCheckedChange={(checked) => updateConfigValue('platRecognizerOffline', 'enabled', checked)}
+            />
+          </div>
+
+          {config.platRecognizerOffline.enabled && (
+            <>
+              <Separator />
+              
+              <div className="space-y-2">
+                <Label htmlFor="offline-endpoint">Endpoint do SDK</Label>
+                <Input
+                  id="offline-endpoint"
+                  type="url"
+                  value={config.platRecognizerOffline.endpoint}
+                  onChange={(e) => updateConfigValue('platRecognizerOffline', 'endpoint', e.target.value)}
+                  placeholder="http://localhost:8081/v1/plate-reader/"
+                />
+                <p className="text-sm text-muted-foreground">
+                  URL completa do SDK Offline executando via Docker
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="offline-license">License Key Offline</Label>
+                <Input
+                  id="offline-license"
+                  type="text"
+                  value={config.platRecognizerOffline.licenseKey}
+                  onChange={(e) => updateConfigValue('platRecognizerOffline', 'licenseKey', e.target.value)}
+                  placeholder="Sua License Key para SDK Offline"
+                />
+                <p className="text-sm text-muted-foreground">
+                  License Key específica para uso com o SDK Offline
+                </p>
+              </div>
+
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h4 className="font-medium text-blue-900 mb-2">🐳 Instalação do SDK via Docker</h4>
+                <p className="text-sm text-blue-800 mb-3">
+                  Para instalar o SDK Offline, execute o comando:
+                </p>
+                <code className="block bg-blue-100 p-2 rounded text-sm text-blue-900">
+                  npm run pr-sdk:install
+                </code>
+                <p className="text-sm text-blue-800 mt-2">
+                  Isso irá baixar e executar o container Docker na porta 8081.
+                </p>
+              </div>
+
+              <Button 
+                onClick={handleTestConnection}
+                disabled={isTestingConnection}
+                variant="outline"
+                className="w-full"
+              >
+                {isTestingConnection ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                ) : (
+                  <TestTube className="h-4 w-4 mr-2" />
+                )}
+                Testar Conexão
+              </Button>
+            </>
+          )}
         </CardContent>
       </Card>
 
