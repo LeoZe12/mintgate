@@ -8,13 +8,12 @@ import { componentTagger } from "lovable-tagger";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    host: process.env.HOST || "0.0.0.0",   // aceita IPv4/IPv6 e LAN
-    port: Number(process.env.PORT) || 8080  // define porta via env ou default 8080
+    host: process.env.HOST || "0.0.0.0",
+    port: Number(process.env.PORT) || 8080,
   },
   plugins: [
     react(),
-    mode === 'development' &&
-    componentTagger(),
+    mode === 'development' && componentTagger(),
   ].filter(Boolean),
   resolve: {
     alias: {
@@ -23,7 +22,7 @@ export default defineConfig(({ mode }) => ({
   },
   test: {
     globals: true,
-    environment: 'jsdom',               // usa JSDOM para testes de DOM
+    environment: 'jsdom',
     alias: {
       "@": path.resolve(__dirname, "./src")
     }

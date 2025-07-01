@@ -12,7 +12,7 @@ const mockFrom = jest.fn(() => ({ insert: mockInsert }));
 mockInsert.mockResolvedValue({ 
   data: null, 
   error: null 
-} as any);
+});
 
 jest.mock('@/integrations/supabase/client', () => ({
   supabase: {
