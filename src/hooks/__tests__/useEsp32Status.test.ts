@@ -6,7 +6,7 @@ import { useEsp32Status } from '../useEsp32Status';
 
 // Mock do Supabase com tipagem correta
 const mockInsert = jest.fn().mockResolvedValue({ 
-  data: null, 
+  data: [] as any[], 
   error: null 
 });
 const mockFrom = jest.fn(() => ({ insert: mockInsert }));
