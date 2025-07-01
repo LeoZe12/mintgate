@@ -4,8 +4,8 @@ import '@testing-library/jest-dom';
 import { jest } from '@jest/globals';
 import { useEsp32Status } from '../useEsp32Status';
 
-// Mock do Supabase
-const mockInsert = jest.fn().mockResolvedValue({ data: null, error: null });
+// Mock do Supabase com tipagem correta
+const mockInsert = jest.fn().mockResolvedValue({ data: [], error: null });
 const mockFrom = jest.fn(() => ({ insert: mockInsert }));
 
 jest.mock('@/integrations/supabase/client', () => ({
