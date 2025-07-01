@@ -5,7 +5,7 @@ import { jest } from '@jest/globals';
 import { useEsp32Status } from '../useEsp32Status';
 
 // Mock do Supabase com tipagem correta
-const mockInsert = jest.fn().mockResolvedValue({ data: [], error: null });
+const mockInsert = jest.fn().mockResolvedValue({ data: [] as any[], error: null });
 const mockFrom = jest.fn(() => ({ insert: mockInsert }));
 
 jest.mock('@/integrations/supabase/client', () => ({
