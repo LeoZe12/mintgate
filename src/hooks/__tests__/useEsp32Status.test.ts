@@ -1,7 +1,8 @@
 
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react-hooks';
 import '@testing-library/jest-dom';
 import { jest } from '@jest/globals';
+import 'whatwg-fetch';
 import { useEsp32Status } from '../useEsp32Status';
 
 // Mock do Supabase com tipagem correta
@@ -10,7 +11,7 @@ const mockFrom = jest.fn(() => ({ insert: mockInsert }));
 
 // Configurar o mock para retornar o formato esperado
 mockInsert.mockResolvedValue({ 
-  data: null, 
+  data: [], 
   error: null 
 });
 
@@ -47,5 +48,60 @@ describe('useEsp32Status Hook', () => {
     expect(typeof result.current.openGate).toBe('function');
     expect(typeof result.current.closeGate).toBe('function');
     expect(typeof result.current.refresh).toBe('function');
+  });
+
+  it('testa função refresh com sucesso', async () => {
+    (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
+      ok: true,
+      json: async () => ({ lastHeartbeat: new Date().toISOString() })
+    } as Response);
+
+    const { result, waitForNextUpdate } = renderHook(() => useEsp32Status());
+
+    await act(async () => {
+      result.current.refresh();
+      await waitForNextUpdate();
+    });
+
+    expect(global.fetch).toHaveBeenCalled();
+    expect(result.current.status).toBe('connected');
+  });
+
+  it('testa função refresh com erro', async () => {
+    (global.fetch as jest.MockedFunction<typeof fetch>).mockRejectedValue(new Error('Network error'));
+
+    const { result, waitForNextUpdate } = renderHook(() => useEsp32Status());
+
+    await act(async () => {
+      result.current.refresh();
+      await waitForNextUpdate();
+    });
+
+    expect(global.fetch).toHaveBeenCalled();
+    expect(result.current.status).toBe('disconnected');
+  });
+
+  it('testa polling com timers falsos', async () => {
+    (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
+      ok: true,
+      json: async () => ({ lastHeartbeat: new Date().toISOString() })
+    } as Response);
+
+    const { result, waitForNextUpdate } = renderHook(() => useEsp32Status());
+
+    // Aguarda a primeira chamada
+    await act(async () => {
+      await waitForNextUpdate();
+    });
+
+    const initialCallCount = (global.fetch as jest.MockedFunction<typeof fetch>).mock.calls.length;
+
+    // Avança os timers para simular o polling
+    await act(async () => {
+      jest.advanceTimersByTime(30000); // 30 segundos
+      await waitForNextUpdate();
+    });
+
+    expect((global.fetch as jest.MockedFunction<typeof fetch>).mock.calls.length).toBeGreaterThan(initialCallCount);
   });
 });
