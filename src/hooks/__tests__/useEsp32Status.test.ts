@@ -6,7 +6,8 @@ import 'whatwg-fetch';
 import { useEsp32Status } from '../useEsp32Status';
 
 // Mock do Supabase com tipagem correta
-const mockInsert = jest.fn().mockResolvedValue({ 
+const mockInsert = jest.fn() as jest.MockedFunction<any>;
+mockInsert.mockResolvedValue({ 
   data: [], 
   error: null 
 });
