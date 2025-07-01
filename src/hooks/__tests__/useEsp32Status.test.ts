@@ -37,4 +37,12 @@ describe('useEsp32Status Hook', () => {
     expect(result.current.lastHeartbeat).toBeNull();
     expect(result.current.isLoading).toBe(false);
   });
+
+  it('possui funções de controle do portão', () => {
+    const { result } = renderHook(() => useEsp32Status());
+
+    expect(typeof result.current.openGate).toBe('function');
+    expect(typeof result.current.closeGate).toBe('function');
+    expect(typeof result.current.refresh).toBe('function');
+  });
 });
