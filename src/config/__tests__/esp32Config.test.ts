@@ -1,11 +1,11 @@
 
-import { validateConfig, ESP32_CONFIG, updateConfig, resetConfig } from '../esp32Config';
+import { validateConfiguration, ESP32_CONFIG, updateConfig, resetConfig } from '../esp32Config';
 import { BASE_CONFIG } from '../esp32Config.base';
 
 describe('ESP32 Configuration System', () => {
-  describe('validateConfig', () => {
+  describe('validateConfiguration', () => {
     it('deve validar configuração válida', () => {
-      expect(validateConfig(BASE_CONFIG)).toBe(true);
+      expect(validateConfiguration(BASE_CONFIG)).toBe(true);
     });
 
     it('deve rejeitar IP inválido', () => {
@@ -17,7 +17,7 @@ describe('ESP32 Configuration System', () => {
         }
       };
       
-      expect(validateConfig(invalidConfig)).toBe(false);
+      expect(validateConfiguration(invalidConfig)).toBe(false);
     });
 
     it('deve rejeitar porta inválida', () => {
@@ -29,7 +29,7 @@ describe('ESP32 Configuration System', () => {
         }
       };
       
-      expect(validateConfig(invalidConfig)).toBe(false);
+      expect(validateConfiguration(invalidConfig)).toBe(false);
     });
   });
 

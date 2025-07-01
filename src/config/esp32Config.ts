@@ -49,7 +49,7 @@ export const getEsp32Url = (path: string = ''): string => {
 };
 
 // Função para validar configurações (compatibilidade)
-export const validateConfig = (config: Esp32ConfigType): boolean => {
+export const validateConfiguration = (config: Esp32ConfigType): boolean => {
   try {
     validateConfig(config);
     return true;
