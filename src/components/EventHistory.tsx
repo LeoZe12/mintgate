@@ -1,136 +1,76 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Clock, Download } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { History, Car, CheckCircle, XCircle } from 'lucide-react';
 
-interface Event {
-  id: string;
-  timestamp: string;
-  event_type: string;
-  description: string;
-  status: 'success' | 'error' | 'warning';
-}
+const mockEvents = [
+  {
+    id: 1,
+    type: 'access_granted',
+    plate: 'ABC-1234',
+    timestamp: new Date(Date.now() - 5 * 60 * 1000),
+    status: 'success'
+  },
+  {
+    id: 2,
+    type: 'access_denied',
+    plate: 'XYZ-9876',
+    timestamp: new Date(Date.now() - 15 * 60 * 1000),
+    status: 'denied'
+  },
+  {
+    id: 3,
+    type: 'access_granted',
+    plate: 'DEF-5678',
+    timestamp: new Date(Date.now() - 30 * 60 * 1000),
+    status: 'success'
+  }
+];
 
 export const EventHistory: React.FC = () => {
-  const { data: events, isLoading } = useQuery({
-    queryKey: ['event-history'],
-    queryFn: async (): Promise<Event[]> => {
-      const { data, error } = await supabase
-        .from('esp32_status_history')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50);
-      
-      if (error) throw error;
-      
-      return data.map(item => ({
-        id: item.id,
-        timestamp: item.created_at,
-        event_type: item.status,
-        description: `Status alterado para ${item.status}`,
-        status: item.status === 'connected' ? 'success' : item.status === 'error' ? 'error' : 'warning'
-      }));
-    },
-    refetchInterval: 30000, // Refetch every 30 seconds
-  });
-
-  const getStatusBadge = (status: string) => {
-    const colors = {
-      success: 'bg-green-500',
-      error: 'bg-red-500',
-      warning: 'bg-yellow-500'
-    };
-    return colors[status as keyof typeof colors] || 'bg-gray-500';
-  };
-
-  const formatTimestamp = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString('pt-BR');
-  };
-
-  const exportHistory = () => {
-    if (!events) return;
-    
-    const csv = [
-      'Timestamp,Tipo,Descrição,Status',
-      ...events.map(event => 
-        `${formatTimestamp(event.timestamp)},${event.event_type},${event.description},${event.status}`
-      )
-    ].join('\n');
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `esp32-history-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
-
   return (
-    <Card className="w-full">
-      <CardHeader className="pb-4">
-        <CardTitle className="flex items-center justify-between">
-          <span className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Histórico de Eventos
-          </span>
-          <Button
-            onClick={exportHistory}
-            variant="outline"
-            size="sm"
-            disabled={!events || events.length === 0}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Exportar
-          </Button>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <History className="h-5 w-5" />
+          Histórico de Eventos
         </CardTitle>
       </CardHeader>
-      
       <CardContent>
-        {isLoading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="text-sm text-gray-500 mt-2">Carregando histórico...</p>
+        <ScrollArea className="h-[300px]">
+          <div className="space-y-3">
+            {mockEvents.map((event) => (
+              <div
+                key={event.id}
+                className="flex items-center justify-between p-3 border rounded-lg"
+              >
+                <div className="flex items-center gap-3">
+                  <Car className="h-4 w-4 text-blue-500" />
+                  <div>
+                    <p className="font-medium">{event.plate}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {event.timestamp.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {event.status === 'success' ? (
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-red-500" />
+                  )}
+                  <Badge
+                    variant={event.status === 'success' ? 'default' : 'destructive'}
+                  >
+                    {event.status === 'success' ? 'Permitido' : 'Negado'}
+                  </Badge>
+                </div>
+              </div>
+            ))}
           </div>
-        ) : events && events.length > 0 ? (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Timestamp</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {events.map((event) => (
-                  <TableRow key={event.id}>
-                    <TableCell className="font-mono text-sm">
-                      {formatTimestamp(event.timestamp)}
-                    </TableCell>
-                    <TableCell className="capitalize">{event.event_type}</TableCell>
-                    <TableCell>{event.description}</TableCell>
-                    <TableCell>
-                      <Badge className={getStatusBadge(event.status)}>
-                        {event.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        ) : (
-          <div className="text-center py-8 text-gray-500">
-            Nenhum evento encontrado no histórico
-          </div>
-        )}
+        </ScrollArea>
       </CardContent>
     </Card>
   );
