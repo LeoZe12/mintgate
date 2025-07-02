@@ -16,12 +16,9 @@ describe('Esp32Status Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseEsp32Status.mockReturnValue({
-      status: 'disconnected',
-      lastHeartbeat: null,
+      status: { connected: false },
       isLoading: false,
-      openGate: jest.fn(),
-      closeGate: jest.fn(),
-      refresh: jest.fn()
+      error: null
     });
   });
 
@@ -35,17 +32,25 @@ describe('Esp32Status Component', () => {
     expect(getByText('Desconectado')).toBeInTheDocument();
   });
 
-  it('exibe último heartbeat como "Nunca" quando null', () => {
+  it('exibe status conectado quando conectado', () => {
+    mockUseEsp32Status.mockReturnValue({
+      status: { connected: true, lastHeartbeat: new Date().toISOString() },
+      isLoading: false,
+      error: null
+    });
+
     const { getByText } = render(<Esp32Status />);
-    expect(getByText('Nunca')).toBeInTheDocument();
+    expect(getByText('Conectado')).toBeInTheDocument();
   });
 
-  it('desabilita botões quando desconectado', () => {
+  it('exibe loading quando carregando', () => {
+    mockUseEsp32Status.mockReturnValue({
+      status: null,
+      isLoading: true,
+      error: null
+    });
+
     const { getByText } = render(<Esp32Status />);
-    const openButton = getByText('Abrir Portão');
-    const closeButton = getByText('Fechar Portão');
-    
-    expect(openButton).toBeDisabled();
-    expect(closeButton).toBeDisabled();
+    expect(getByText('Verificando conexão...')).toBeInTheDocument();
   });
 });
