@@ -27,8 +27,8 @@ export const BASE_CONFIG: Esp32ConfigType = {
   },
   
   platRecognizer: {
-    apiKey: import.meta.env.VITE_PLATERECOGNIZER_API_KEY || '',
-    licenseKey: import.meta.env.VITE_PLATERECOGNIZER_LICENSE_KEY || '',
+    apiKey: import.meta.env.VITE_PLATERECOGNIZER_API_KEY || 'demo_api_key_replace_with_real',
+    licenseKey: import.meta.env.VITE_PLATERECOGNIZER_LICENSE_KEY || 'demo_license_key_replace_with_real',
     apiUrl: 'https://api.platerecognizer.com/v1/plate-reader/',
     confidenceThreshold: 0.8,
     regions: ['br'], // Brasil

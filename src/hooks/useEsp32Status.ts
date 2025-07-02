@@ -83,7 +83,7 @@ export const useEsp32Status = () => {
       const timeoutId = setTimeout(() => controller.abort(), ESP32_CONFIG.esp32.timeout);
 
       await fetch(
-        `http://${ESP32_CONFIG.esp32.ipAddress}:${ESP32_CONFIG.esp32.port}${ESP32_CONFIG.api.endpoints.openGate}`,
+        `http://${ESP32_CONFIG.esp32.ipAddress}:${ESP32_CONFIG.esp32.port}${ESP32_CONFIG.api.endpoints.open}`,
         {
           method: 'POST',
           signal: controller.signal,
@@ -103,7 +103,7 @@ export const useEsp32Status = () => {
       const timeoutId = setTimeout(() => controller.abort(), ESP32_CONFIG.esp32.timeout);
 
       await fetch(
-        `http://${ESP32_CONFIG.esp32.ipAddress}:${ESP32_CONFIG.esp32.port}${ESP32_CONFIG.api.endpoints.closeGate}`,
+        `http://${ESP32_CONFIG.esp32.ipAddress}:${ESP32_CONFIG.esp32.port}${ESP32_CONFIG.api.endpoints.close}`,
         {
           method: 'POST',
           signal: controller.signal,
@@ -122,7 +122,7 @@ export const useEsp32Status = () => {
   };
 
   return {
-    status,
+    status: data || { connected: status === 'connected', lastHeartbeat },
     lastHeartbeat,
     isLoading,
     error,

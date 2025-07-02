@@ -39,15 +39,6 @@ export const Esp32ConfigSchema = z.object({
     endpoint: z.string().url('URL do endpoint offline inválida'),
     licenseKey: z.string(),
     apiToken: z.string(),
-  }).refine((data) => {
-    // Se habilitado, licenseKey e apiToken devem ser obrigatórios
-    if (data.enabled && (data.licenseKey.trim().length === 0 || data.apiToken.trim().length === 0)) {
-      return false;
-    }
-    return true;
-  }, {
-    message: 'License Key e API Token são obrigatórios quando o modo offline está habilitado',
-    path: ['licenseKey'],
   }),
   
   api: z.object({
