@@ -1,5 +1,5 @@
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { jest } from '@jest/globals';
 import 'whatwg-fetch';
@@ -24,23 +24,7 @@ jest.mock('@/integrations/supabase/client', () => ({
 // Mock do fetch global
 global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
 
-// Componente de teste para usar o hook
-const TestComponent = () => {
-  const { status, lastHeartbeat, isLoading, openGate, closeGate, refresh } = useEsp32Status();
-  
-  return (
-    <div>
-      <div data-testid="status">{status.connected ? 'connected' : 'disconnected'}</div>
-      <div data-testid="lastHeartbeat">{lastHeartbeat || 'null'}</div>
-      <div data-testid="isLoading">{isLoading ? 'true' : 'false'}</div>
-      <button data-testid="openGate" onClick={openGate}>Open Gate</button>
-      <button data-testid="closeGate" onClick={closeGate}>Close Gate</button>
-      <button data-testid="refresh" onClick={refresh}>Refresh</button>
-    </div>
-  );
-};
-
-const renderWithQueryClient = (component: React.ReactElement) => {
+const createWrapper = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -49,10 +33,8 @@ const renderWithQueryClient = (component: React.ReactElement) => {
     },
   });
   
-  return render(
-    <QueryClientProvider client={queryClient}>
-      {component}
-    </QueryClientProvider>
+  return ({ children }: { children: React.ReactNode }) => (
+    React.createElement(QueryClientProvider, { client: queryClient }, children)
   );
 };
 
@@ -64,21 +46,25 @@ describe('useEsp32Status Hook', () => {
   it('inicializa com estado padrão', async () => {
     (global.fetch as jest.MockedFunction<typeof fetch>).mockRejectedValue(new Error('Connection failed'));
     
-    renderWithQueryClient(<TestComponent />);
+    const { result } = renderHook(() => useEsp32Status(), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => {
-      expect(screen.getByTestId('status')).toHaveTextContent('disconnected');
-      expect(screen.getByTestId('lastHeartbeat')).toHaveTextContent('null');
-      expect(screen.getByTestId('isLoading')).toHaveTextContent('false');
+      expect(result.current.status.connected).toBe(false);
+      expect(result.current.lastHeartbeat).toBeNull();
+      expect(result.current.isLoading).toBe(false);
     });
   });
 
   it('possui funções de controle do portão', () => {
-    renderWithQueryClient(<TestComponent />);
+    const { result } = renderHook(() => useEsp32Status(), {
+      wrapper: createWrapper(),
+    });
 
-    expect(screen.getByTestId('openGate')).toBeInTheDocument();
-    expect(screen.getByTestId('closeGate')).toBeInTheDocument();
-    expect(screen.getByTestId('refresh')).toBeInTheDocument();
+    expect(typeof result.current.openGate).toBe('function');
+    expect(typeof result.current.closeGate).toBe('function');
+    expect(typeof result.current.refresh).toBe('function');
   });
 
   it('testa função openGate', async () => {
@@ -87,10 +73,11 @@ describe('useEsp32Status Hook', () => {
       json: async () => ({})
     } as Response);
 
-    renderWithQueryClient(<TestComponent />);
+    const { result } = renderHook(() => useEsp32Status(), {
+      wrapper: createWrapper(),
+    });
 
-    const openButton = screen.getByTestId('openGate');
-    openButton.click();
+    await result.current.openGate();
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalled();
@@ -103,10 +90,11 @@ describe('useEsp32Status Hook', () => {
       json: async () => ({})
     } as Response);
 
-    renderWithQueryClient(<TestComponent />);
+    const { result } = renderHook(() => useEsp32Status(), {
+      wrapper: createWrapper(),
+    });
 
-    const closeButton = screen.getByTestId('closeGate');
-    closeButton.click();
+    await result.current.closeGate();
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalled();
