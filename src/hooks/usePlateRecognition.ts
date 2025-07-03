@@ -26,7 +26,7 @@ export const usePlateRecognition = () => {
     imageFile: File
   ): Promise<PlateRecognitionResult> => {
     try {
-      console.log('🔍 Iniciando reconhecimento de placa...');
+      console.log('🔍 Iniciando reconhecimento de placa (modo offline)...');
       
       // 1. Reconhecer placa na imagem
       const recognitionResult = await recognizePlate(imageFile);
@@ -55,9 +55,9 @@ export const usePlateRecognition = () => {
       const plateNumber = detectedPlate.plate.toUpperCase();
       const confidence = detectedPlate.confidence;
 
-      console.log('📋 Placa detectada:', plateNumber, 'Confiança:', confidence);
+      console.log('📋 Placa detectada (offline):', plateNumber, 'Confiança:', confidence);
 
-      // 2. Verificar se a placa está cadastrada
+      // 2. Verificar se a placa está cadastrada localmente
       const registeredPlate = await findPlateByNumber(plateNumber);
       
       let result: PlateRecognitionResult;
@@ -77,7 +77,7 @@ export const usePlateRecognition = () => {
           reason: `Acesso autorizado para apartamento ${registeredPlate.apartment_number}`
         };
 
-        console.log('✅ Acesso autorizado para:', result.apartmentNumber);
+        console.log('✅ Acesso autorizado (offline) para:', result.apartmentNumber);
 
         // 3. Abrir portão
         try {
@@ -107,7 +107,7 @@ export const usePlateRecognition = () => {
           reason: 'Placa não cadastrada no sistema'
         };
 
-        console.log('❌ Acesso negado - Placa não cadastrada:', plateNumber);
+        console.log('❌ Acesso negado (offline) - Placa não cadastrada:', plateNumber);
 
         // Registrar tentativa de acesso negada
         await logAccess({
@@ -121,7 +121,7 @@ export const usePlateRecognition = () => {
       return result;
 
     } catch (error) {
-      console.error('❌ Erro no processamento de reconhecimento:', error);
+      console.error('❌ Erro no processamento de reconhecimento (offline):', error);
       
       const result: PlateRecognitionResult = {
         plateNumber: '',

@@ -1,132 +1,138 @@
 
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
+import { useState, useCallback } from 'react';
+import { useLocalStorage } from './useLocalStorage';
 
-export type VehiclePlate = Tables<'vehicle_plates'>;
-export type VehiclePlateInsert = TablesInsert<'vehicle_plates'>;
-export type VehiclePlateUpdate = TablesUpdate<'vehicle_plates'>;
+export interface VehiclePlate {
+  id: string;
+  plate: string;
+  apartment_number: string;
+  owner_name?: string;
+  vehicle_model?: string;
+  vehicle_color?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VehiclePlateInsert {
+  plate: string;
+  apartment_number: string;
+  owner_name?: string;
+  vehicle_model?: string;
+  vehicle_color?: string;
+}
 
 export const useVehiclePlates = () => {
-  const queryClient = useQueryClient();
+  const [plates, setPlates] = useLocalStorage<VehiclePlate[]>('vehicle_plates', []);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Buscar todas as placas cadastradas
-  const { data: plates, isLoading, error, refetch } = useQuery({
-    queryKey: ['vehicle-plates'],
-    queryFn: async (): Promise<VehiclePlate[]> => {
-      const { data, error } = await supabase
-        .from('vehicle_plates')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+  // Função para salvar dados em arquivo .txt
+  const saveToTextFile = useCallback((data: VehiclePlate[], filename: string = 'placas_veiculos.txt') => {
+    const content = data.map(plate => 
+      `ID: ${plate.id}\n` +
+      `Placa: ${plate.plate}\n` +
+      `Apartamento: ${plate.apartment_number}\n` +
+      `Proprietário: ${plate.owner_name || 'N/A'}\n` +
+      `Modelo: ${plate.vehicle_model || 'N/A'}\n` +
+      `Cor: ${plate.vehicle_color || 'N/A'}\n` +
+      `Ativo: ${plate.is_active ? 'Sim' : 'Não'}\n` +
+      `Criado em: ${plate.created_at}\n` +
+      `Atualizado em: ${plate.updated_at}\n` +
+      `${'='.repeat(50)}\n`
+    ).join('\n');
 
-      if (error) {
-        console.error('Erro ao buscar placas:', error);
-        throw error;
-      }
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, []);
 
-      return data || [];
-    },
-  });
+  const findPlateByNumber = useCallback(async (plateNumber: string): Promise<VehiclePlate | null> => {
+    const foundPlate = plates.find(
+      plate => plate.plate.toUpperCase() === plateNumber.toUpperCase() && plate.is_active
+    );
+    return foundPlate || null;
+  }, [plates]);
 
-  // Buscar placa específica
-  const findPlateByNumber = async (plateNumber: string): Promise<VehiclePlate | null> => {
+  const addPlate = useCallback(async (newPlate: VehiclePlateInsert): Promise<VehiclePlate> => {
+    setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('vehicle_plates')
-        .select('*')
-        .eq('plate', plateNumber.toUpperCase())
-        .eq('is_active', true)
-        .maybeSingle();
+      const plate: VehiclePlate = {
+        id: Date.now().toString(),
+        ...newPlate,
+        plate: newPlate.plate.toUpperCase(),
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
 
-      if (error) {
-        console.error('Erro ao buscar placa:', error);
-        return null;
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Erro ao buscar placa:', error);
-      return null;
+      const updatedPlates = [...plates, plate];
+      setPlates(updatedPlates);
+      saveToTextFile(updatedPlates);
+      
+      return plate;
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [plates, setPlates, saveToTextFile]);
 
-  // Adicionar nova placa
-  const addPlateMutation = useMutation({
-    mutationFn: async (newPlate: VehiclePlateInsert): Promise<VehiclePlate> => {
-      const { data, error } = await supabase
-        .from('vehicle_plates')
-        .insert({
-          ...newPlate,
-          plate: newPlate.plate.toUpperCase(),
-        })
-        .select()
-        .single();
+  const updatePlate = useCallback(async ({ id, updates }: { id: string; updates: Partial<VehiclePlate> }): Promise<VehiclePlate> => {
+    setIsLoading(true);
+    try {
+      const updatedPlates = plates.map(plate => 
+        plate.id === id 
+          ? { ...plate, ...updates, updated_at: new Date().toISOString() }
+          : plate
+      );
+      
+      setPlates(updatedPlates);
+      saveToTextFile(updatedPlates);
+      
+      const updatedPlate = updatedPlates.find(p => p.id === id)!;
+      return updatedPlate;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [plates, setPlates, saveToTextFile]);
 
-      if (error) {
-        console.error('Erro ao adicionar placa:', error);
-        throw error;
-      }
+  const removePlate = useCallback(async (id: string): Promise<void> => {
+    setIsLoading(true);
+    try {
+      const updatedPlates = plates.map(plate => 
+        plate.id === id 
+          ? { ...plate, is_active: false, updated_at: new Date().toISOString() }
+          : plate
+      );
+      
+      setPlates(updatedPlates);
+      saveToTextFile(updatedPlates);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [plates, setPlates, saveToTextFile]);
 
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vehicle-plates'] });
-    },
-  });
-
-  // Atualizar placa
-  const updatePlateMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: VehiclePlateUpdate }): Promise<VehiclePlate> => {
-      const { data, error } = await supabase
-        .from('vehicle_plates')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Erro ao atualizar placa:', error);
-        throw error;
-      }
-
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vehicle-plates'] });
-    },
-  });
-
-  // Remover placa (soft delete)
-  const removePlateMutation = useMutation({
-    mutationFn: async (id: string): Promise<void> => {
-      const { error } = await supabase
-        .from('vehicle_plates')
-        .update({ is_active: false })
-        .eq('id', id);
-
-      if (error) {
-        console.error('Erro ao remover placa:', error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vehicle-plates'] });
-    },
-  });
+  const refetch = useCallback(async () => {
+    // Em um sistema local, não há necessidade de refetch
+    return Promise.resolve();
+  }, []);
 
   return {
-    plates: plates || [],
+    plates: plates.filter(plate => plate.is_active),
     isLoading,
-    error,
+    error: null,
     refetch,
     findPlateByNumber,
-    addPlate: addPlateMutation.mutateAsync,
-    updatePlate: updatePlateMutation.mutateAsync,
-    removePlate: removePlateMutation.mutateAsync,
-    isAddingPlate: addPlateMutation.isPending,
-    isUpdatingPlate: updatePlateMutation.isPending,
-    isRemovingPlate: removePlateMutation.isPending,
+    addPlate,
+    updatePlate,
+    removePlate,
+    isAddingPlate: isLoading,
+    isUpdatingPlate: isLoading,
+    isRemovingPlate: isLoading,
+    saveToTextFile: () => saveToTextFile(plates),
   };
 };

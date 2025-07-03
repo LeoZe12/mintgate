@@ -1,85 +1,91 @@
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import type { Tables, TablesInsert } from '@/integrations/supabase/types';
+import { useState, useCallback } from 'react';
+import { useLocalStorage } from './useLocalStorage';
 
-export type AccessHistory = Tables<'access_history'>;
-export type AccessHistoryInsert = TablesInsert<'access_history'>;
+export interface AccessHistory {
+  id: string;
+  plate: string;
+  apartment_number?: string;
+  access_granted: boolean;
+  image_url?: string;
+  confidence_score?: number;
+  timestamp: string;
+  reason?: string;
+}
+
+export interface AccessHistoryInsert {
+  plate: string;
+  apartment_number?: string;
+  access_granted: boolean;
+  image_url?: string;
+  confidence_score?: number;
+  reason?: string;
+}
 
 export const useAccessHistory = () => {
-  const queryClient = useQueryClient();
+  const [accessHistory, setAccessHistory] = useLocalStorage<AccessHistory[]>('access_history', []);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Buscar histórico de acessos
-  const { data: accessHistory, isLoading, error, refetch } = useQuery({
-    queryKey: ['access-history'],
-    queryFn: async (): Promise<AccessHistory[]> => {
-      const { data, error } = await supabase
-        .from('access_history')
-        .select('*')
-        .order('timestamp', { ascending: false })
-        .limit(100);
+  // Função para salvar histórico em arquivo .txt
+  const saveToTextFile = useCallback((data: AccessHistory[], filename: string = 'historico_acessos.txt') => {
+    const content = data.map(access => 
+      `ID: ${access.id}\n` +
+      `Placa: ${access.plate}\n` +
+      `Apartamento: ${access.apartment_number || 'N/A'}\n` +
+      `Acesso: ${access.access_granted ? 'AUTORIZADO' : 'NEGADO'}\n` +
+      `Confiança: ${access.confidence_score ? (access.confidence_score * 100).toFixed(1) + '%' : 'N/A'}\n` +
+      `Data/Hora: ${new Date(access.timestamp).toLocaleString('pt-BR')}\n` +
+      `Motivo: ${access.reason || 'N/A'}\n` +
+      `${'='.repeat(50)}\n`
+    ).join('\n');
 
-      if (error) {
-        console.error('Erro ao buscar histórico:', error);
-        throw error;
-      }
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, []);
 
-      return data || [];
-    },
-  });
-
-  // Registrar tentativa de acesso
-  const logAccessMutation = useMutation({
-    mutationFn: async (accessData: AccessHistoryInsert): Promise<AccessHistory> => {
-      const { data, error } = await supabase
-        .from('access_history')
-        .insert({
-          ...accessData,
-          plate: accessData.plate.toUpperCase(),
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Erro ao registrar acesso:', error);
-        throw error;
-      }
-
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['access-history'] });
-    },
-  });
-
-  // Buscar histórico por apartamento
-  const getHistoryByApartment = async (apartmentNumber: string): Promise<AccessHistory[]> => {
+  const logAccess = useCallback(async (accessData: AccessHistoryInsert): Promise<AccessHistory> => {
+    setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('access_history')
-        .select('*')
-        .eq('apartment_number', apartmentNumber)
-        .order('timestamp', { ascending: false });
+      const access: AccessHistory = {
+        id: Date.now().toString(),
+        ...accessData,
+        plate: accessData.plate.toUpperCase(),
+        timestamp: new Date().toISOString(),
+      };
 
-      if (error) {
-        console.error('Erro ao buscar histórico por apartamento:', error);
-        return [];
-      }
-
-      return data || [];
-    } catch (error) {
-      console.error('Erro ao buscar histórico por apartamento:', error);
-      return [];
+      const updatedHistory = [access, ...accessHistory];
+      setAccessHistory(updatedHistory);
+      saveToTextFile(updatedHistory);
+      
+      return access;
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [accessHistory, setAccessHistory, saveToTextFile]);
+
+  const getHistoryByApartment = useCallback(async (apartmentNumber: string): Promise<AccessHistory[]> => {
+    return accessHistory.filter(access => access.apartment_number === apartmentNumber);
+  }, [accessHistory]);
+
+  const refetch = useCallback(async () => {
+    return Promise.resolve();
+  }, []);
 
   return {
-    accessHistory: accessHistory || [],
+    accessHistory: accessHistory.slice(0, 100), // Limitar a 100 registros mais recentes
     isLoading,
-    error,
+    error: null,
     refetch,
-    logAccess: logAccessMutation.mutateAsync,
+    logAccess,
     getHistoryByApartment,
-    isLoggingAccess: logAccessMutation.isPending,
+    isLoggingAccess: isLoading,
+    saveToTextFile: () => saveToTextFile(accessHistory),
   };
 };
