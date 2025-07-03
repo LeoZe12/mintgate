@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { jest } from '@jest/globals';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import Esp32Status from '../Esp32Status';
+import { Esp32Status } from '../Esp32Status';
 
 // Mock do hook useEsp32Status
 jest.mock('@/hooks/useEsp32Status', () => ({
