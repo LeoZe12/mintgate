@@ -4,8 +4,8 @@ import { z } from 'zod';
 // Schema de validação para configurações do ESP32
 export const Esp32ConfigSchema = z.object({
   esp32: z.object({
-    ipAddress: z.string().ip('Endereço IP inválido'),
-    port: z.number().min(1).max(65535, 'Porta deve estar entre 1 e 65535'),
+    serialPort: z.string().min(1, 'Porta serial é obrigatória'),
+    baudRate: z.number().min(9600, 'Baud rate mínimo de 9600').max(2000000, 'Baud rate máximo de 2000000'),
     maxRetries: z.number().min(1).max(10, 'Máximo de 10 tentativas'),
     timeout: z.number().min(1000, 'Timeout mínimo de 1000ms'),
     pollingInterval: z.number().min(1000, 'Intervalo mínimo de 1000ms'),

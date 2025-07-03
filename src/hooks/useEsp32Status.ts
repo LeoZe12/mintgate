@@ -10,6 +10,60 @@ export interface Esp32Status {
   isLoading?: boolean;
 }
 
+// Simulação de comunicação serial via Web Serial API
+const connectToSerial = async (): Promise<SerialPort | null> => {
+  if (!navigator.serial) {
+    console.warn('Web Serial API não suportada neste navegador');
+    return null;
+  }
+
+  try {
+    const port = await navigator.serial.requestPort();
+    await port.open({ 
+      baudRate: ESP32_CONFIG.esp32.baudRate,
+      dataBits: 8,
+      stopBits: 1,
+      parity: 'none'
+    });
+    return port;
+  } catch (error) {
+    console.error('Erro ao conectar à porta serial:', error);
+    return null;
+  }
+};
+
+const sendSerialCommand = async (command: string): Promise<string | null> => {
+  try {
+    const port = await connectToSerial();
+    if (!port) return null;
+
+    const writer = port.writable?.getWriter();
+    const reader = port.readable?.getReader();
+    
+    if (!writer || !reader) {
+      console.error('Não foi possível obter writer/reader da porta serial');
+      return null;
+    }
+
+    // Enviar comando
+    const encoder = new TextEncoder();
+    await writer.write(encoder.encode(command + '\n'));
+    writer.releaseLock();
+
+    // Ler resposta
+    const { value } = await reader.read();
+    reader.releaseLock();
+    
+    await port.close();
+    
+    const decoder = new TextDecoder();
+    return decoder.decode(value);
+  } catch (error) {
+    console.error('Erro na comunicação serial:', error);
+    return null;
+  }
+};
+
 export const useEsp32Status = () => {
   const [status, setStatus] = useState<'connected' | 'disconnected'>('disconnected');
   const [lastHeartbeat, setLastHeartbeat] = useState<string | null>(null);
@@ -18,22 +72,10 @@ export const useEsp32Status = () => {
     queryKey: ['esp32-status'],
     queryFn: async (): Promise<Esp32Status> => {
       try {
-        // Create an AbortController for timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), ESP32_CONFIG.esp32.timeout);
-
-        const response = await fetch(
-          `http://${ESP32_CONFIG.esp32.ipAddress}:${ESP32_CONFIG.esp32.port}${ESP32_CONFIG.api.endpoints.status}`,
-          {
-            method: 'GET',
-            signal: controller.signal,
-          }
-        );
-
-        clearTimeout(timeoutId);
-
-        if (response.ok) {
-          const data = await response.json();
+        // Tentar comunicação serial
+        const response = await sendSerialCommand('STATUS');
+        
+        if (response && response.includes('OK')) {
           const heartbeat = new Date().toISOString();
           
           // Log to Supabase
@@ -46,11 +88,35 @@ export const useEsp32Status = () => {
           return {
             connected: true,
             lastHeartbeat: heartbeat,
-            ...data
           };
         } else {
-          return { connected: false };
+          // Fallback para comunicação via API local (caso tenha um servidor bridge)
+          const fallbackResponse = await fetch('http://localhost:3001/esp32/status', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (fallbackResponse.ok) {
+            const data = await fallbackResponse.json();
+            const heartbeat = new Date().toISOString();
+            
+            await supabase.from('esp32_status_history').insert({
+              status: 'connected',
+              last_heartbeat: heartbeat,
+              is_loading: false
+            });
+
+            return {
+              connected: true,
+              lastHeartbeat: heartbeat,
+              ...data
+            };
+          }
         }
+        
+        return { connected: false };
       } catch (error) {
         console.error('ESP32 connection error:', error);
         
@@ -79,18 +145,19 @@ export const useEsp32Status = () => {
 
   const openGate = async () => {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), ESP32_CONFIG.esp32.timeout);
-
-      await fetch(
-        `http://${ESP32_CONFIG.esp32.ipAddress}:${ESP32_CONFIG.esp32.port}${ESP32_CONFIG.api.endpoints.open}`,
-        {
+      // Tentar comando serial primeiro
+      const serialResponse = await sendSerialCommand('OPEN_GATE');
+      
+      if (!serialResponse || !serialResponse.includes('OK')) {
+        // Fallback para API local
+        await fetch('http://localhost:3001/esp32/open', {
           method: 'POST',
-          signal: controller.signal,
-        }
-      );
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+      }
 
-      clearTimeout(timeoutId);
       console.log('Gate opened successfully');
     } catch (error) {
       console.error('Error opening gate:', error);
@@ -99,18 +166,19 @@ export const useEsp32Status = () => {
 
   const closeGate = async () => {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), ESP32_CONFIG.esp32.timeout);
-
-      await fetch(
-        `http://${ESP32_CONFIG.esp32.ipAddress}:${ESP32_CONFIG.esp32.port}${ESP32_CONFIG.api.endpoints.close}`,
-        {
+      // Tentar comando serial primeiro
+      const serialResponse = await sendSerialCommand('CLOSE_GATE');
+      
+      if (!serialResponse || !serialResponse.includes('OK')) {
+        // Fallback para API local
+        await fetch('http://localhost:3001/esp32/close', {
           method: 'POST',
-          signal: controller.signal,
-        }
-      );
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+      }
 
-      clearTimeout(timeoutId);
       console.log('Gate closed successfully');
     } catch (error) {
       console.error('Error closing gate:', error);

@@ -4,8 +4,8 @@ import { Esp32ConfigType } from './schema';
 // Configuração base - valores padrão que são compartilhados entre ambientes
 export const BASE_CONFIG: Esp32ConfigType = {
   esp32: {
-    ipAddress: import.meta.env.VITE_ESP32_IP || '192.168.1.100',
-    port: parseInt(import.meta.env.VITE_ESP32_PORT) || 80,
+    serialPort: import.meta.env.VITE_ESP32_SERIAL_PORT || 'COM3',
+    baudRate: parseInt(import.meta.env.VITE_ESP32_BAUD_RATE) || 115200,
     maxRetries: parseInt(import.meta.env.VITE_MAX_RETRIES) || 3,
     timeout: parseInt(import.meta.env.VITE_REQUEST_TIMEOUT) || 5000,
     pollingInterval: parseInt(import.meta.env.VITE_POLLING_INTERVAL) || 5000,

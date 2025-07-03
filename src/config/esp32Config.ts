@@ -38,14 +38,14 @@ export const ESP32_CONFIG = createConfig();
 // Re-exportar tipos para compatibilidade
 export type { Esp32ConfigType };
 
-// Função para obter a URL completa da API
+// Função para obter a URL completa da API (agora será serial)
 export const getApiUrl = (endpoint: keyof typeof ESP32_CONFIG.api.endpoints): string => {
   return `${ESP32_CONFIG.api.baseUrl}${ESP32_CONFIG.api.endpoints[endpoint]}`;
 };
 
-// Função para obter a URL completa do ESP32
-export const getEsp32Url = (path: string = ''): string => {
-  return `http://${ESP32_CONFIG.esp32.ipAddress}:${ESP32_CONFIG.esp32.port}${path}`;
+// Função para obter informações da conexão serial
+export const getSerialConnectionInfo = (): string => {
+  return `${ESP32_CONFIG.esp32.serialPort} @ ${ESP32_CONFIG.esp32.baudRate} baud`;
 };
 
 // Função para validar configurações (compatibilidade)
@@ -74,8 +74,8 @@ export const resetConfig = (): Esp32ConfigType => {
 if (ESP32_CONFIG.esp32.debugMode) {
   console.log('🔧 Configuração ESP32 carregada:', {
     environment: getEnvironment(),
-    ip: ESP32_CONFIG.esp32.ipAddress,
-    port: ESP32_CONFIG.esp32.port,
+    serialPort: ESP32_CONFIG.esp32.serialPort,
+    baudRate: ESP32_CONFIG.esp32.baudRate,
     camera: ESP32_CONFIG.camera.url,
     gpio: ESP32_CONFIG.gpio,
     hasApiKey: !!ESP32_CONFIG.platRecognizer.apiKey,

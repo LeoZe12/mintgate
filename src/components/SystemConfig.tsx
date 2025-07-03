@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Wifi, Camera, Shield, TestTube } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Settings, Usb, Camera, Shield, TestTube } from 'lucide-react';
 import { ESP32_CONFIG } from '@/config/esp32Config';
 import { PlateRecognizerTest } from '@/components/PlateRecognizerTest';
 import { useToast } from '@/hooks/use-toast';
@@ -22,6 +23,15 @@ export const SystemConfig: React.FC = () => {
       description: "As configurações foram salvas com sucesso.",
     });
   };
+
+  const commonSerialPorts = [
+    'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8',
+    '/dev/ttyUSB0', '/dev/ttyUSB1', '/dev/ttyACM0', '/dev/ttyACM1'
+  ];
+
+  const commonBaudRates = [
+    9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600
+  ];
 
   return (
     <div className="space-y-6">
@@ -44,25 +54,71 @@ export const SystemConfig: React.FC = () => {
             <TabsContent value="esp32" className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="esp32-ip">Endereço IP</Label>
+                  <Label htmlFor="serial-port">Porta Serial</Label>
+                  <Select
+                    value={config.esp32.serialPort}
+                    onValueChange={(value) => setConfig({
+                      ...config,
+                      esp32: { ...config.esp32, serialPort: value }
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a porta serial" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {commonSerialPorts.map((port) => (
+                        <SelectItem key={port} value={port}>
+                          {port}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="baud-rate">Baud Rate</Label>
+                  <Select
+                    value={config.esp32.baudRate.toString()}
+                    onValueChange={(value) => setConfig({
+                      ...config,
+                      esp32: { ...config.esp32, baudRate: parseInt(value) }
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o baud rate" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {commonBaudRates.map((rate) => (
+                        <SelectItem key={rate} value={rate.toString()}>
+                          {rate}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="timeout">Timeout (ms)</Label>
                   <Input
-                    id="esp32-ip"
-                    value={config.esp32.ipAddress}
+                    id="timeout"
+                    type="number"
+                    value={config.esp32.timeout}
                     onChange={(e) => setConfig({
                       ...config,
-                      esp32: { ...config.esp32, ipAddress: e.target.value }
+                      esp32: { ...config.esp32, timeout: parseInt(e.target.value) }
                     })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="esp32-port">Porta</Label>
+                  <Label htmlFor="polling-interval">Intervalo de Polling (ms)</Label>
                   <Input
-                    id="esp32-port"
+                    id="polling-interval"
                     type="number"
-                    value={config.esp32.port}
+                    value={config.esp32.pollingInterval}
                     onChange={(e) => setConfig({
                       ...config,
-                      esp32: { ...config.esp32, port: parseInt(e.target.value) }
+                      esp32: { ...config.esp32, pollingInterval: parseInt(e.target.value) }
                     })}
                   />
                 </div>
@@ -78,6 +134,18 @@ export const SystemConfig: React.FC = () => {
                   })}
                 />
                 <Label htmlFor="debug-mode">Modo Debug</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="auto-reconnect"
+                  checked={config.esp32.autoReconnect}
+                  onCheckedChange={(checked) => setConfig({
+                    ...config,
+                    esp32: { ...config.esp32, autoReconnect: checked }
+                  })}
+                />
+                <Label htmlFor="auto-reconnect">Reconexão Automática</Label>
               </div>
             </TabsContent>
 
