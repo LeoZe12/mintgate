@@ -9,6 +9,47 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      access_history: {
+        Row: {
+          access_granted: boolean
+          apartment_number: string | null
+          confidence_score: number | null
+          id: string
+          image_url: string | null
+          plate: string
+          reason: string | null
+          timestamp: string
+        }
+        Insert: {
+          access_granted: boolean
+          apartment_number?: string | null
+          confidence_score?: number | null
+          id?: string
+          image_url?: string | null
+          plate: string
+          reason?: string | null
+          timestamp?: string
+        }
+        Update: {
+          access_granted?: boolean
+          apartment_number?: string | null
+          confidence_score?: number | null
+          id?: string
+          image_url?: string | null
+          plate?: string
+          reason?: string | null
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_access_vehicle_plate"
+            columns: ["plate"]
+            isOneToOne: false
+            referencedRelation: "vehicle_plates"
+            referencedColumns: ["plate"]
+          },
+        ]
+      }
       esp32_config: {
         Row: {
           config_key: string
@@ -63,6 +104,42 @@ export type Database = {
           last_heartbeat?: string | null
           status?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      vehicle_plates: {
+        Row: {
+          apartment_number: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          owner_name: string | null
+          plate: string
+          updated_at: string
+          vehicle_color: string | null
+          vehicle_model: string | null
+        }
+        Insert: {
+          apartment_number: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          owner_name?: string | null
+          plate: string
+          updated_at?: string
+          vehicle_color?: string | null
+          vehicle_model?: string | null
+        }
+        Update: {
+          apartment_number?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          owner_name?: string | null
+          plate?: string
+          updated_at?: string
+          vehicle_color?: string | null
+          vehicle_model?: string | null
         }
         Relationships: []
       }
