@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react';
 import { plateRecognizerOfflineService, type PlateRecognizerOfflineResponse } from '@/services/plateRecognizerOfflineService';
 import { ESP32_CONFIG } from '@/config/esp32Config';
@@ -20,25 +19,19 @@ export interface PlateRecognitionResult {
 
 export const usePlateRecognizer = () => {
   const recognizePlate = useCallback(async (imageFile: File): Promise<PlateRecognitionResult> => {
-    // Validar imagem antes de processar
-    const validation = plateRecognizerOfflineService.validateImage(imageFile);
-    if (!validation.valid) {
-      throw new Error(validation.error);
-    }
-
+    // Usar o serviço aprimorado em vez do serviço básico
+    const { enhancedPlateRecognizerService } = await import('@/services/enhancedPlateRecognizerService');
+    
     if (ESP32_CONFIG.esp32.debugMode) {
-      console.log('🔍 Iniciando reconhecimento com SDK offline...');
+      console.log('🔍 Iniciando reconhecimento com SDK offline aprimorado...');
     }
 
     try {
-      const result = await plateRecognizerOfflineService.processImage(imageFile, {
-        regions: ESP32_CONFIG.platRecognizer.regions,
-        enableFallback: true,
-      });
+      const result = await enhancedPlateRecognizerService.recognizePlateEnhanced(imageFile);
 
       // Converter para formato esperado pela aplicação
       return {
-        results: result.results.map(r => ({
+        results: result.results.map((r: any) => ({
           plate: r.plate,
           confidence: r.confidence,
           region: r.region ? { code: r.region.code } : undefined,
@@ -52,7 +45,7 @@ export const usePlateRecognizer = () => {
       throw error;
     }
   }, []);
-  
+
   const testConnection = useCallback(async (): Promise<boolean> => {
     try {
       const isOnline = await plateRecognizerOfflineService.testConnection();

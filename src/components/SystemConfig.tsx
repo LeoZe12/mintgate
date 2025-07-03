@@ -12,6 +12,8 @@ import { ESP32_CONFIG } from '@/config/esp32Config';
 import { PlateRecognizerTest } from '@/components/PlateRecognizerTest';
 import { PlateRecognizerConfig } from '@/components/PlateRecognizerConfig';
 import { useToast } from '@/hooks/use-toast';
+import { EnhancedConfigPanel } from '@/components/EnhancedConfigPanel';
+import { VideoCaptureComponent } from '@/components/VideoCaptureComponent';
 
 export const SystemConfig: React.FC = () => {
   const { toast } = useToast();
@@ -44,11 +46,13 @@ export const SystemConfig: React.FC = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="esp32" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="esp32">ESP32</TabsTrigger>
               <TabsTrigger value="camera">Câmera</TabsTrigger>
               <TabsTrigger value="plate">Reconhecimento</TabsTrigger>
               <TabsTrigger value="offline">SDK Offline</TabsTrigger>
+              <TabsTrigger value="enhanced">Avançado</TabsTrigger>
+              <TabsTrigger value="video">Vídeo</TabsTrigger>
               <TabsTrigger value="test">Testes</TabsTrigger>
             </TabsList>
 
@@ -258,6 +262,14 @@ export const SystemConfig: React.FC = () => {
 
             <TabsContent value="offline" className="space-y-4">
               <PlateRecognizerConfig />
+            </TabsContent>
+
+            <TabsContent value="enhanced" className="space-y-4">
+              <EnhancedConfigPanel />
+            </TabsContent>
+
+            <TabsContent value="video" className="space-y-4">
+              <VideoCaptureComponent />
             </TabsContent>
 
             <TabsContent value="test" className="space-y-4">
