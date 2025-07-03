@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Settings, Usb, Camera, Shield, TestTube } from 'lucide-react';
 import { ESP32_CONFIG } from '@/config/esp32Config';
 import { PlateRecognizerTest } from '@/components/PlateRecognizerTest';
+import { PlateRecognizerConfig } from '@/components/PlateRecognizerConfig';
 import { useToast } from '@/hooks/use-toast';
 
 export const SystemConfig: React.FC = () => {
@@ -44,10 +44,11 @@ export const SystemConfig: React.FC = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="esp32" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="esp32">ESP32</TabsTrigger>
               <TabsTrigger value="camera">Câmera</TabsTrigger>
               <TabsTrigger value="plate">Reconhecimento</TabsTrigger>
+              <TabsTrigger value="offline">SDK Offline</TabsTrigger>
               <TabsTrigger value="test">Testes</TabsTrigger>
             </TabsList>
 
@@ -253,6 +254,10 @@ export const SystemConfig: React.FC = () => {
                   </div>
                 </div>
               )}
+            </TabsContent>
+
+            <TabsContent value="offline" className="space-y-4">
+              <PlateRecognizerConfig />
             </TabsContent>
 
             <TabsContent value="test" className="space-y-4">
