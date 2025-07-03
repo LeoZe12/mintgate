@@ -8,24 +8,24 @@ describe('ESP32 Configuration System', () => {
       expect(validateConfiguration(BASE_CONFIG)).toBe(true);
     });
 
-    it('deve rejeitar IP inválido', () => {
+    it('deve rejeitar porta serial inválida', () => {
       const invalidConfig = {
         ...BASE_CONFIG,
         esp32: {
           ...BASE_CONFIG.esp32,
-          ipAddress: 'invalid-ip'
+          serialPort: '' // Porta serial vazia
         }
       };
       
       expect(validateConfiguration(invalidConfig)).toBe(false);
     });
 
-    it('deve rejeitar porta inválida', () => {
+    it('deve rejeitar baud rate inválido', () => {
       const invalidConfig = {
         ...BASE_CONFIG,
         esp32: {
           ...BASE_CONFIG.esp32,
-          port: 70000 // Porta inválida
+          baudRate: 1000000000 // Baud rate muito alto
         }
       };
       
@@ -43,7 +43,7 @@ describe('ESP32 Configuration System', () => {
       
       const updatedConfig = updateConfig(updates);
       expect(updatedConfig.esp32.debugMode).toBe(true);
-      expect(updatedConfig.esp32.ipAddress).toBe(ESP32_CONFIG.esp32.ipAddress);
+      expect(updatedConfig.esp32.serialPort).toBe(ESP32_CONFIG.esp32.serialPort);
     });
   });
 
