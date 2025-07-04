@@ -12,6 +12,10 @@ interface PlateDB extends DBSchema {
       region?: string;
       processing_time: number;
     };
+    indexes: {
+      'by-plate': string;
+      'by-timestamp': number;
+    };
   };
 }
 
@@ -27,8 +31,8 @@ class PlateCacheService {
     this.db = await openDB<PlateDB>(this.DB_NAME, this.DB_VERSION, {
       upgrade(db) {
         const store = db.createObjectStore('plates', { keyPath: 'imageHash' });
-        store.createIndex('plate', 'plate');
-        store.createIndex('timestamp', 'timestamp');
+        store.createIndex('by-plate', 'plate');
+        store.createIndex('by-timestamp', 'timestamp');
       },
     });
   }
@@ -89,7 +93,7 @@ class PlateCacheService {
 
     const transaction = this.db.transaction('plates', 'readwrite');
     const store = transaction.objectStore('plates');
-    const index = store.index('timestamp');
+    const index = store.index('by-timestamp');
 
     const expiredTimestamp = Date.now() - this.CACHE_EXPIRY;
     const range = IDBKeyRange.upperBound(expiredTimestamp);
