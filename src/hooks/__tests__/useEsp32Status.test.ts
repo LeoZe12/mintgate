@@ -1,5 +1,5 @@
-
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
+import { waitFor } from '@testing-library/dom';
 import '@testing-library/jest-dom';
 import { jest } from '@jest/globals';
 import 'whatwg-fetch';
