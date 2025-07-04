@@ -8,6 +8,7 @@ import { EventHistory } from '@/components/EventHistory';
 import { SystemConfig } from '@/components/SystemConfig';
 import { NetworkInfo } from '@/components/NetworkInfo';
 import { Analytics } from '@/components/Analytics';
+import { VideoCaptureComponent } from '@/components/VideoCaptureComponent';
 
 export const Dashboard: React.FC = () => {
   console.log('Dashboard component rendering...');
@@ -35,6 +36,11 @@ export const Dashboard: React.FC = () => {
                 <Esp32Status />
                 <DeviceMonitor />
                 <NetworkInfo />
+              </div>
+              
+              {/* Adicionar seção de câmera ao vivo */}
+              <div className="mt-8">
+                <VideoCaptureComponent />
               </div>
             </TabsContent>
 
