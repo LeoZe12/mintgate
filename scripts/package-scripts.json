@@ -1,0 +1,6 @@
+
+{
+  "rtsp-proxy": "node scripts/rtsp-proxy-server.js",
+  "install-rtsp": "bash scripts/install-rtsp-proxy.sh",
+  "start:with-proxy": "concurrently \"npm run rtsp-proxy\" \"npm run dev\""
+}
