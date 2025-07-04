@@ -8,7 +8,7 @@ import { EventHistory } from '@/components/EventHistory';
 import { SystemConfig } from '@/components/SystemConfig';
 import { NetworkInfo } from '@/components/NetworkInfo';
 import { Analytics } from '@/components/Analytics';
-import { VideoCaptureComponent } from '@/components/VideoCaptureComponent';
+import { IpCameraFeed } from '@/components/IpCameraFeed';
 
 export const Dashboard: React.FC = () => {
   console.log('Dashboard component rendering...');
@@ -38,9 +38,9 @@ export const Dashboard: React.FC = () => {
                 <NetworkInfo />
               </div>
               
-              {/* Adicionar seção de câmera ao vivo */}
+              {/* Feed da câmera IP ao vivo */}
               <div className="mt-8">
-                <VideoCaptureComponent />
+                <IpCameraFeed />
               </div>
             </TabsContent>
 
