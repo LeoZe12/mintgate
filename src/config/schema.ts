@@ -1,4 +1,3 @@
-
 import { z } from 'zod';
 
 // Schema de validação para configurações do ESP32
@@ -20,7 +19,7 @@ export const Esp32ConfigSchema = z.object({
   }),
   
   camera: z.object({
-    url: z.string().url('URL da câmera inválida'),
+    url: z.string().min(1, 'URL da câmera é obrigatória'),
     streamFormat: z.enum(['mjpeg', 'rtsp', 'http']),
     quality: z.enum(['low', 'medium', 'high']),
     fps: z.number().min(1).max(60, 'FPS deve estar entre 1 e 60'),

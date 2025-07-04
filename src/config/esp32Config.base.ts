@@ -1,4 +1,3 @@
-
 import { Esp32ConfigType } from './schema';
 
 // Configuração base - valores padrão que são compartilhados entre ambientes
@@ -20,8 +19,8 @@ export const BASE_CONFIG: Esp32ConfigType = {
   },
   
   camera: {
-    url: import.meta.env.VITE_CAMERA_URL || 'http://192.168.1.101:8080/video',
-    streamFormat: 'mjpeg',
+    url: import.meta.env.VITE_CAMERA_URL || 'rtsp://admin:Leoze0607@192.168.0.10:554/Streaming/Channels/101',
+    streamFormat: 'rtsp',
     quality: 'medium',
     fps: 30,
   },
