@@ -3,16 +3,18 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Camera, RefreshCw, AlertCircle, Settings } from 'lucide-react';
+import { Camera, RefreshCw, AlertCircle, Settings, Terminal, ExternalLink } from 'lucide-react';
 import { ESP32_CONFIG } from '@/config/esp32Config';
 import { cameraStreamService } from '@/services/cameraStreamService';
 
 export const IpCameraFeed: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [streamType, setStreamType] = useState<string>('');
+  const [showTroubleshooting, setShowTroubleshooting] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -29,25 +31,34 @@ export const IpCameraFeed: React.FC = () => {
   }, []);
 
   const initializeStream = async () => {
+    console.log('🎥 Inicializando stream da câmera...');
     setIsLoading(true);
     setConnectionStatus('connecting');
+    setHasError(false);
+    setErrorMessage('');
     
     const detectedType = cameraStreamService.detectStreamType(originalCameraUrl);
     setStreamType(detectedType);
+    console.log(`📡 Tipo de stream detectado: ${detectedType}`);
     
     if (detectedType === 'websocket') {
       setupWebSocketStream();
     } else {
-      const streamUrl = cameraStreamService.getStreamUrl(originalCameraUrl);
-      setCurrentStreamUrl(streamUrl);
+      // Testa a conexão antes de tentar carregar
+      const connectionTest = await cameraStreamService.testConnection(originalCameraUrl);
       
-      // Teste de conexão
-      const isConnected = await cameraStreamService.testConnection(originalCameraUrl);
-      if (!isConnected) {
+      if (!connectionTest.success) {
+        console.error('❌ Falha no teste de conexão:', connectionTest.error);
         setHasError(true);
+        setErrorMessage(connectionTest.error || 'Erro desconhecido');
         setConnectionStatus('disconnected');
         setIsLoading(false);
+        return;
       }
+      
+      const streamUrl = cameraStreamService.getStreamUrl(originalCameraUrl);
+      console.log('🔗 URL do stream:', streamUrl);
+      setCurrentStreamUrl(streamUrl);
     }
   };
 
@@ -55,6 +66,7 @@ export const IpCameraFeed: React.FC = () => {
     const ws = cameraStreamService.createWebSocketStream(originalCameraUrl);
     if (!ws) {
       setHasError(true);
+      setErrorMessage('Falha ao criar conexão WebSocket');
       setConnectionStatus('disconnected');
       setIsLoading(false);
       return;
@@ -63,6 +75,7 @@ export const IpCameraFeed: React.FC = () => {
     wsRef.current = ws;
 
     ws.onopen = () => {
+      console.log('✅ WebSocket conectado');
       setConnectionStatus('connected');
       setHasError(false);
       setIsLoading(false);
@@ -77,58 +90,50 @@ export const IpCameraFeed: React.FC = () => {
       }
     };
 
-    ws.onerror = () => {
+    ws.onerror = (error) => {
+      console.error('❌ Erro no WebSocket:', error);
       setHasError(true);
+      setErrorMessage('Erro na conexão WebSocket');
       setConnectionStatus('disconnected');
       setIsLoading(false);
     };
 
     ws.onclose = () => {
+      console.log('🔌 WebSocket desconectado');
       setConnectionStatus('disconnected');
     };
   };
 
   const handleImageLoad = () => {
+    console.log('✅ Imagem da câmera carregada com sucesso');
     setIsLoading(false);
     setHasError(false);
     setConnectionStatus('connected');
   };
 
-  const handleImageError = () => {
+  const handleImageError = (event: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    console.error('❌ Erro ao carregar imagem da câmera:', event);
     setIsLoading(false);
     setHasError(true);
+    setErrorMessage('Falha ao carregar o feed da câmera');
     setConnectionStatus('disconnected');
   };
 
   const refreshFeed = () => {
-    setIsLoading(true);
-    setHasError(false);
+    console.log('🔄 Atualizando feed da câmera...');
     setLastRefresh(new Date());
-    
-    if (streamType === 'websocket') {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-      setupWebSocketStream();
-    } else {
-      const newStreamUrl = cameraStreamService.getStreamUrl(originalCameraUrl);
-      setCurrentStreamUrl(newStreamUrl);
-      
-      if (imgRef.current) {
-        imgRef.current.src = newStreamUrl;
-      }
-    }
+    initializeStream();
   };
 
+  // Auto-refresh para streams não-websocket
   useEffect(() => {
-    // Auto-refresh para streams não-websocket
-    if (streamType !== 'websocket') {
+    if (streamType !== 'websocket' && connectionStatus === 'connected') {
       const interval = setInterval(() => {
         refreshFeed();
       }, 30000);
       return () => clearInterval(interval);
     }
-  }, [streamType]);
+  }, [streamType, connectionStatus]);
 
   const getStatusColor = () => {
     switch (connectionStatus) {
@@ -148,6 +153,8 @@ export const IpCameraFeed: React.FC = () => {
     }
   };
 
+  const troubleshootingInstructions = cameraStreamService.getTroubleshootingInstructions(streamType);
+
   return (
     <Card>
       <CardHeader>
@@ -166,8 +173,17 @@ export const IpCameraFeed: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => setShowTroubleshooting(!showTroubleshooting)}
+              title="Mostrar ajuda de troubleshooting"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={refreshFeed}
               disabled={isLoading}
+              title="Atualizar feed"
             >
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
@@ -193,12 +209,21 @@ export const IpCameraFeed: React.FC = () => {
                 <p className="text-sm text-gray-500 mb-2">Erro ao carregar câmera</p>
                 <p className="text-xs text-gray-400 mb-2">URL: {originalCameraUrl}</p>
                 <p className="text-xs text-gray-400 mb-2">Tipo: {streamType}</p>
+                {errorMessage && (
+                  <p className="text-xs text-red-600 mb-3 px-4">{errorMessage}</p>
+                )}
                 {streamType === 'rtsp' && (
-                  <div className="bg-yellow-50 p-3 rounded-lg mt-3">
-                    <Settings className="h-4 w-4 mx-auto mb-1 text-yellow-600" />
-                    <p className="text-xs text-yellow-700">
-                      Para streams RTSP, certifique-se de que o servidor proxy está rodando na porta 3002
+                  <div className="bg-yellow-50 p-3 rounded-lg mt-3 mb-3">
+                    <Terminal className="h-4 w-4 mx-auto mb-1 text-yellow-600" />
+                    <p className="text-xs text-yellow-700 mb-2">
+                      Para streams RTSP, execute os comandos:
                     </p>
+                    <code className="text-xs bg-gray-800 text-green-400 px-2 py-1 rounded block mb-1">
+                      npm run install-rtsp
+                    </code>
+                    <code className="text-xs bg-gray-800 text-green-400 px-2 py-1 rounded block">
+                      npm run rtsp-proxy
+                    </code>
                   </div>
                 )}
                 <Button
@@ -224,6 +249,37 @@ export const IpCameraFeed: React.FC = () => {
             onError={handleImageError}
           />
         </div>
+        
+        {showTroubleshooting && (
+          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+            <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Guia de Solução de Problemas
+            </h4>
+            <ul className="text-xs text-gray-600 space-y-1">
+              {troubleshootingInstructions.map((instruction, index) => (
+                <li key={index}>{instruction}</li>
+              ))}
+            </ul>
+            <div className="mt-3 pt-2 border-t border-blue-200">
+              <p className="text-xs text-gray-500 mb-2">Links úteis:</p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="text-xs" asChild>
+                  <a href="https://ffmpeg.org/download.html" target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    Download FFmpeg
+                  </a>
+                </Button>
+                <Button variant="outline" size="sm" className="text-xs" asChild>
+                  <a href="https://www.videolan.org/vlc/" target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    VLC Player
+                  </a>
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
         
         <div className="mt-4 flex justify-between items-center text-xs text-gray-500">
           <div className="flex flex-col gap-1">
