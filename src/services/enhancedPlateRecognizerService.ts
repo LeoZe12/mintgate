@@ -1,4 +1,3 @@
-
 import { plateRecognizerOfflineService } from './plateRecognizerOfflineService';
 import { plateCacheService } from './plateCache';
 import { performanceMetricsService } from './performanceMetrics';
@@ -122,7 +121,7 @@ class EnhancedPlateRecognizerService {
         }
       }
 
-      // Processar com retry e backoff
+      // Processar com SDK offline apenas
       const result = await exponentialBackoffService.executeWithAbortSignal(
         async (signal) => {
           return await plateRecognizerOfflineService.recognizePlate(file, {

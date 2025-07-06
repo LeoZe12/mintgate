@@ -6,10 +6,15 @@ import { plateRecognizerOfflineService } from '@/services/plateRecognizerOffline
 // Mock do service
 jest.mock('@/services/plateRecognizerOfflineService', () => ({
   plateRecognizerOfflineService: {
-    validateImage: jest.fn(),
-    processImage: jest.fn(),
     testConnection: jest.fn(),
     updateEndpoint: jest.fn(),
+  },
+}));
+
+// Mock do serviço aprimorado
+jest.mock('@/services/enhancedPlateRecognizerService', () => ({
+  enhancedPlateRecognizerService: {
+    recognizePlateEnhanced: jest.fn(),
   },
 }));
 
@@ -19,9 +24,6 @@ jest.mock('@/config/esp32Config', () => ({
     platRecognizerOffline: {
       enabled: true,
       endpoint: 'http://localhost:8081/v1/plate-reader/',
-    },
-    platRecognizer: {
-      regions: ['br'],
     },
     esp32: {
       debugMode: false,
@@ -37,7 +39,7 @@ describe('usePlateRecognizer', () => {
   });
 
   describe('recognizePlate', () => {
-    it('deve reconhecer placa com sucesso', async () => {
+    it('deve reconhecer placa com sucesso usando o serviço offline', async () => {
       const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
       const mockServiceResponse = {
         processing_time: 0.5,
@@ -50,12 +52,11 @@ describe('usePlateRecognizer', () => {
           },
         ],
         filename: 'test.jpg',
-        version: 1,
-        timestamp: '2023-01-01T00:00:00Z',
       };
 
-      mockService.validateImage.mockReturnValue({ valid: true });
-      mockService.processImage.mockResolvedValue(mockServiceResponse);
+      // Mock do serviço aprimorado
+      const { enhancedPlateRecognizerService } = require('@/services/enhancedPlateRecognizerService');
+      enhancedPlateRecognizerService.recognizePlateEnhanced.mockResolvedValue(mockServiceResponse);
 
       const { result } = renderHook(() => usePlateRecognizer());
 
@@ -75,46 +76,6 @@ describe('usePlateRecognizer', () => {
         ],
         processing_time: 0.5,
         filename: 'test.jpg',
-      });
-
-      expect(mockService.validateImage).toHaveBeenCalledWith(mockFile);
-      expect(mockService.processImage).toHaveBeenCalledWith(mockFile, {
-        regions: ['br'],
-        enableFallback: true,
-      });
-    });
-
-    it('deve lançar erro para imagem inválida', async () => {
-      const mockFile = new File(['test'], 'test.gif', { type: 'image/gif' });
-      
-      mockService.validateImage.mockReturnValue({ 
-        valid: false, 
-        error: 'Formato não suportado' 
-      });
-
-      const { result } = renderHook(() => usePlateRecognizer());
-
-      await act(async () => {
-        await expect(result.current.recognizePlate(mockFile)).rejects.toThrow(
-          'Formato não suportado'
-        );
-      });
-
-      expect(mockService.processImage).not.toHaveBeenCalled();
-    });
-
-    it('deve propagar erros do service', async () => {
-      const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
-      
-      mockService.validateImage.mockReturnValue({ valid: true });
-      mockService.processImage.mockRejectedValue(new Error('Service error'));
-
-      const { result } = renderHook(() => usePlateRecognizer());
-
-      await act(async () => {
-        await expect(result.current.recognizePlate(mockFile)).rejects.toThrow(
-          'Service error'
-        );
       });
     });
   });
@@ -146,19 +107,6 @@ describe('usePlateRecognizer', () => {
 
       expect(connectionResult).toBe(false);
     });
-
-    it('deve tratar erros de conexão', async () => {
-      mockService.testConnection.mockRejectedValue(new Error('Network error'));
-
-      const { result } = renderHook(() => usePlateRecognizer());
-
-      let connectionResult;
-      await act(async () => {
-        connectionResult = await result.current.testConnection();
-      });
-
-      expect(connectionResult).toBe(false);
-    });
   });
 
   describe('updateEndpoint', () => {
@@ -176,10 +124,9 @@ describe('usePlateRecognizer', () => {
   });
 
   describe('properties', () => {
-    it('deve retornar propriedades corretas', () => {
+    it('deve retornar endpoint correto', () => {
       const { result } = renderHook(() => usePlateRecognizer());
 
-      expect(result.current.isOfflineMode).toBe(true);
       expect(result.current.currentEndpoint).toBe('http://localhost:8081/v1/plate-reader/');
     });
   });

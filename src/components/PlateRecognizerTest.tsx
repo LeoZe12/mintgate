@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export const PlateRecognizerTest: React.FC = () => {
   const { toast } = useToast();
-  const { recognizePlate, testConnection, isOfflineMode, currentEndpoint } = usePlateRecognizer();
+  const { recognizePlate, testConnection, currentEndpoint } = usePlateRecognizer();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [isRecognizing, setIsRecognizing] = useState(false);
@@ -35,8 +35,8 @@ export const PlateRecognizerTest: React.FC = () => {
       toast({
         title: isConnected ? "Conexão OK" : "Conexão Falhou",
         description: isConnected 
-          ? "Conexão com o Plate Recognizer estabelecida com sucesso!"
-          : "Não foi possível conectar ao Plate Recognizer. Verifique as configurações.",
+          ? "Conexão com o SDK Offline estabelecida com sucesso!"
+          : "Não foi possível conectar ao SDK Offline. Verifique as configurações.",
         variant: isConnected ? "default" : "destructive",
       });
     } catch (error) {
@@ -86,25 +86,20 @@ export const PlateRecognizerTest: React.FC = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TestTube className="h-5 w-5" />
-            Teste do Plate Recognizer SDK
+            Teste do Plate Recognizer SDK Offline
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Status do modo */}
           <div className="flex items-center gap-2">
-            <Label>Modo Atual:</Label>
-            <Badge variant={isOfflineMode ? "secondary" : "default"}>
-              {isOfflineMode ? "SDK Offline" : "API Online"}
-            </Badge>
+            <Label>Modo:</Label>
+            <Badge variant="secondary">SDK Offline</Badge>
           </div>
 
-          {/* Endpoint atual */}
           <div className="space-y-2">
             <Label>Endpoint:</Label>
             <Input value={currentEndpoint} readOnly className="bg-gray-50" />
           </div>
 
-          {/* Teste de conexão */}
           <div className="space-y-2">
             <Button 
               onClick={handleTestConnection} 
@@ -141,7 +136,6 @@ export const PlateRecognizerTest: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Upload de arquivo */}
           <div className="space-y-2">
             <Label htmlFor="image-upload">Selecionar Imagem:</Label>
             <Input
@@ -157,7 +151,6 @@ export const PlateRecognizerTest: React.FC = () => {
             )}
           </div>
 
-          {/* Botão de reconhecimento */}
           <Button 
             onClick={handleRecognizePlate}
             disabled={!selectedFile || isRecognizing}
@@ -171,7 +164,6 @@ export const PlateRecognizerTest: React.FC = () => {
             {isRecognizing ? "Reconhecendo..." : "Reconhecer Placa"}
           </Button>
 
-          {/* Resultado */}
           {recognitionResult && (
             <div className="space-y-2">
               <Label>Resultado:</Label>

@@ -46,10 +46,9 @@ export const SystemConfig: React.FC = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="esp32" className="w-full">
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="esp32">ESP32</TabsTrigger>
               <TabsTrigger value="camera">Câmera</TabsTrigger>
-              <TabsTrigger value="plate">Reconhecimento</TabsTrigger>
               <TabsTrigger value="offline">SDK Offline</TabsTrigger>
               <TabsTrigger value="enhanced">Avançado</TabsTrigger>
               <TabsTrigger value="video">Vídeo</TabsTrigger>
@@ -177,87 +176,6 @@ export const SystemConfig: React.FC = () => {
                   <Badge>{config.camera.fps}</Badge>
                 </div>
               </div>
-            </TabsContent>
-
-            <TabsContent value="plate" className="space-y-4">
-              <div className="flex items-center space-x-2 mb-4">
-                <Switch
-                  id="offline-mode"
-                  checked={config.platRecognizerOffline.enabled}
-                  onCheckedChange={(checked) => setConfig({
-                    ...config,
-                    platRecognizerOffline: { ...config.platRecognizerOffline, enabled: checked }
-                  })}
-                />
-                <Label htmlFor="offline-mode">Usar SDK Offline</Label>
-                <Badge variant={config.platRecognizerOffline.enabled ? "default" : "secondary"}>
-                  {config.platRecognizerOffline.enabled ? "Offline" : "Online"}
-                </Badge>
-              </div>
-
-              {config.platRecognizerOffline.enabled ? (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="offline-endpoint">Endpoint Offline</Label>
-                    <Input
-                      id="offline-endpoint"
-                      value={config.platRecognizerOffline.endpoint}
-                      onChange={(e) => setConfig({
-                        ...config,
-                        platRecognizerOffline: { ...config.platRecognizerOffline, endpoint: e.target.value }
-                      })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="offline-license">License Key</Label>
-                    <Input
-                      id="offline-license"
-                      value={config.platRecognizerOffline.licenseKey}
-                      onChange={(e) => setConfig({
-                        ...config,
-                        platRecognizerOffline: { ...config.platRecognizerOffline, licenseKey: e.target.value }
-                      })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="offline-token">API Token</Label>
-                    <Input
-                      id="offline-token"
-                      value={config.platRecognizerOffline.apiToken}
-                      onChange={(e) => setConfig({
-                        ...config,
-                        platRecognizerOffline: { ...config.platRecognizerOffline, apiToken: e.target.value }
-                      })}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="api-key">API Key</Label>
-                    <Input
-                      id="api-key"
-                      type="password"
-                      value={config.platRecognizer.apiKey}
-                      onChange={(e) => setConfig({
-                        ...config,
-                        platRecognizer: { ...config.platRecognizer, apiKey: e.target.value }
-                      })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="license-key">License Key</Label>
-                    <Input
-                      id="license-key"
-                      value={config.platRecognizer.licenseKey}
-                      onChange={(e) => setConfig({
-                        ...config,
-                        platRecognizer: { ...config.platRecognizer, licenseKey: e.target.value }
-                      })}
-                    />
-                  </div>
-                </div>
-              )}
             </TabsContent>
 
             <TabsContent value="offline" className="space-y-4">
