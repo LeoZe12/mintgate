@@ -1,8 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { ESP32_CONFIG } from '@/config/esp32Config';
-import { supabase } from '@/integrations/supabase/client';
 
 export interface Esp32Status {
   connected: boolean;
@@ -13,64 +11,62 @@ export interface Esp32Status {
 export const useEsp32Status = () => {
   const [status, setStatus] = useState<'connected' | 'disconnected'>('disconnected');
   const [lastHeartbeat, setLastHeartbeat] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['esp32-status'],
-    queryFn: async (): Promise<Esp32Status> => {
-      try {
-        // Comunicação via API local (servidor bridge que se comunica com ESP32 via serial)
-        const response = await fetch(`http://localhost:3001/esp32/status?port=${ESP32_CONFIG.esp32.serialPort}&baud=${ESP32_CONFIG.esp32.baudRate}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          signal: AbortSignal.timeout(ESP32_CONFIG.esp32.timeout),
-        });
+  // Verificar status do ESP32 via USB/Serial
+  const checkStatus = async (): Promise<Esp32Status> => {
+    try {
+      setIsLoading(true);
+      
+      // Comunicação via API local (servidor bridge que se comunica com ESP32 via serial)
+      const response = await fetch(`http://localhost:3001/esp32/status?port=${ESP32_CONFIG.esp32.serialPort}&baud=${ESP32_CONFIG.esp32.baudRate}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal: AbortSignal.timeout(ESP32_CONFIG.esp32.timeout),
+      });
 
-        if (response.ok) {
-          const data = await response.json();
-          const heartbeat = new Date().toISOString();
-          
-          // Log to Supabase
-          await supabase.from('esp32_status_history').insert({
-            status: 'connected',
-            last_heartbeat: heartbeat,
-            is_loading: false
-          });
-
-          return {
-            connected: true,
-            lastHeartbeat: heartbeat,
-            ...data
-          };
-        }
+      if (response.ok) {
+        const data = await response.json();
+        const heartbeat = new Date().toISOString();
         
-        return { connected: false };
-      } catch (error) {
-        console.error('ESP32 connection error:', error);
-        
-        // Log error to Supabase
-        await supabase.from('esp32_status_history').insert({
-          status: 'disconnected',
-          last_heartbeat: null,
-          is_loading: false
-        });
+        setStatus('connected');
+        setLastHeartbeat(heartbeat);
+        setError(null);
 
-        return { connected: false };
+        return {
+          connected: true,
+          lastHeartbeat: heartbeat,
+          ...data
+        };
       }
-    },
-    refetchInterval: ESP32_CONFIG.esp32.pollingInterval,
-    retry: ESP32_CONFIG.esp32.maxRetries,
-  });
-
-  useEffect(() => {
-    if (data) {
-      setStatus(data.connected ? 'connected' : 'disconnected');
-      if (data.lastHeartbeat) {
-        setLastHeartbeat(data.lastHeartbeat);
-      }
+      
+      setStatus('disconnected');
+      return { connected: false };
+    } catch (error) {
+      console.error('ESP32 connection error:', error);
+      setStatus('disconnected');
+      setError(error instanceof Error ? error : new Error('Erro desconhecido'));
+      
+      return { connected: false };
+    } finally {
+      setIsLoading(false);
     }
-  }, [data]);
+  };
+
+  // Polling automático do status
+  useEffect(() => {
+    const interval = setInterval(() => {
+      checkStatus();
+    }, ESP32_CONFIG.esp32.pollingInterval);
+
+    // Verificação inicial
+    checkStatus();
+
+    return () => clearInterval(interval);
+  }, []);
 
   const openGate = async () => {
     try {
@@ -85,6 +81,7 @@ export const useEsp32Status = () => {
       console.log('Gate opened successfully via serial port', ESP32_CONFIG.esp32.serialPort);
     } catch (error) {
       console.error('Error opening gate:', error);
+      throw error;
     }
   };
 
@@ -101,15 +98,16 @@ export const useEsp32Status = () => {
       console.log('Gate closed successfully via serial port', ESP32_CONFIG.esp32.serialPort);
     } catch (error) {
       console.error('Error closing gate:', error);
+      throw error;
     }
   };
 
   const refresh = () => {
-    refetch();
+    checkStatus();
   };
 
   return {
-    status: data || { connected: status === 'connected', lastHeartbeat },
+    status: { connected: status === 'connected', lastHeartbeat },
     lastHeartbeat,
     isLoading,
     error,
