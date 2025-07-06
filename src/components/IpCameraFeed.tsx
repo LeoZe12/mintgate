@@ -1,9 +1,9 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Camera, RefreshCw, AlertCircle, Settings, Terminal, ExternalLink, Info } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Camera, RefreshCw, AlertCircle, Settings, Terminal, ExternalLink, Info, Link } from 'lucide-react';
 import { ESP32_CONFIG } from '@/config/esp32Config';
 
 export const IpCameraFeed: React.FC = () => {
@@ -15,11 +15,12 @@ export const IpCameraFeed: React.FC = () => {
   const [currentUrlIndex, setCurrentUrlIndex] = useState(0);
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
   const [attemptedUrls, setAttemptedUrls] = useState<string[]>([]);
+  const [customUrl, setCustomUrl] = useState('rtsp://admin:Leoze0607@192.168.0.10:554/Streaming/Channels/101');
+  const [showQuickSetup, setShowQuickSetup] = useState(true);
   const imgRef = useRef<HTMLImageElement>(null);
 
-  const originalCameraUrl = ESP32_CONFIG.camera.url;
+  const originalCameraUrl = customUrl || ESP32_CONFIG.camera.url;
 
-  // Gera URLs alternativas automaticamente
   const generateAlternativeUrls = (rtspUrl: string): string[] => {
     try {
       const url = new URL(rtspUrl);
@@ -113,9 +114,21 @@ export const IpCameraFeed: React.FC = () => {
     await tryNextUrl();
   };
 
-  useEffect(() => {
+  const handleQuickConnect = () => {
+    if (!customUrl.trim()) {
+      setErrorMessage('Por favor, insira uma URL válida');
+      return;
+    }
+    console.log('🚀 Conectando rapidamente com:', customUrl);
+    setShowQuickSetup(false);
     initializeStream();
-  }, []);
+  };
+
+  useEffect(() => {
+    if (!showQuickSetup) {
+      initializeStream();
+    }
+  }, [showQuickSetup]);
 
   const handleImageLoad = () => {
     console.log('✅ Imagem da câmera carregada com sucesso');
@@ -141,12 +154,11 @@ export const IpCameraFeed: React.FC = () => {
     }
   };
 
-  // Auto-refresh para snapshots
   useEffect(() => {
     if (connectionStatus === 'connected') {
       const interval = setInterval(() => {
         refreshFeed();
-      }, 2000); // Refresh a cada 2 segundos
+      }, 2000);
       return () => clearInterval(interval);
     }
   }, [connectionStatus]);
@@ -189,6 +201,14 @@ export const IpCameraFeed: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => setShowQuickSetup(!showQuickSetup)}
+              title="Configuração rápida"
+            >
+              <Link className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setShowTroubleshooting(!showTroubleshooting)}
               title="Mostrar informações de debug"
             >
@@ -207,6 +227,48 @@ export const IpCameraFeed: React.FC = () => {
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {showQuickSetup && (
+          <div className="mb-6 p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+              <Link className="h-4 w-4" />
+              Configuração Rápida da Câmera
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-gray-600 mb-1 block">
+                  Cole a URL da sua câmera IP:
+                </label>
+                <Input
+                  value={customUrl}
+                  onChange={(e) => setCustomUrl(e.target.value)}
+                  placeholder="rtsp://usuario:senha@ip:porta/caminho"
+                  className="text-sm"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleQuickConnect}
+                  className="flex-1"
+                  disabled={!customUrl.trim()}
+                >
+                  <Camera className="h-4 w-4 mr-2" />
+                  Conectar Câmera
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setShowQuickSetup(false)}
+                >
+                  Usar Padrão
+                </Button>
+              </div>
+            </div>
+            <div className="mt-3 text-xs text-gray-500">
+              <p><strong>Exemplo:</strong> rtsp://admin:senha123@192.168.1.100:554/stream</p>
+              <p>O sistema testará automaticamente diferentes formatos de URL.</p>
+            </div>
+          </div>
+        )}
+
         <div className="relative">
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg z-10">
@@ -238,14 +300,24 @@ export const IpCameraFeed: React.FC = () => {
                     <li>✓ Portas alternativas</li>
                   </ul>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={initializeStream}
-                  className="mt-2"
-                >
-                  Tentar Novamente
-                </Button>
+                <div className="flex gap-2 justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowQuickSetup(true)}
+                    className="mt-2"
+                  >
+                    Mudar URL
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={initializeStream}
+                    className="mt-2"
+                  >
+                    Tentar Novamente
+                  </Button>
+                </div>
               </div>
             </div>
           )}
