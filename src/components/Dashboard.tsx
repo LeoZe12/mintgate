@@ -2,11 +2,9 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Esp32Status } from '@/components/Esp32Status';
-import { DeviceMonitor } from '@/components/DeviceMonitor';
+import { SystemStatus } from '@/components/SystemStatus';
 import { EventHistory } from '@/components/EventHistory';
 import { SystemConfig } from '@/components/SystemConfig';
-import { NetworkInfo } from '@/components/NetworkInfo';
 import { Analytics } from '@/components/Analytics';
 import { IpCameraFeed } from '@/components/IpCameraFeed';
 
@@ -22,30 +20,16 @@ export const Dashboard: React.FC = () => {
           </h1>
           
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-              <TabsTrigger value="monitoring">Monitoramento</TabsTrigger>
               <TabsTrigger value="history">Histórico</TabsTrigger>
               <TabsTrigger value="config">Configuração</TabsTrigger>
-              <TabsTrigger value="network">Rede</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="camera">Câmera</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <Esp32Status />
-                <DeviceMonitor />
-                <NetworkInfo />
-              </div>
-              
-              {/* Feed da câmera IP ao vivo */}
-              <div className="mt-8">
-                <IpCameraFeed />
-              </div>
-            </TabsContent>
-
-            <TabsContent value="monitoring" className="space-y-6">
-              <DeviceMonitor />
+              <SystemStatus />
             </TabsContent>
 
             <TabsContent value="history" className="space-y-6">
@@ -56,12 +40,12 @@ export const Dashboard: React.FC = () => {
               <SystemConfig />
             </TabsContent>
 
-            <TabsContent value="network" className="space-y-6">
-              <NetworkInfo />
-            </TabsContent>
-
             <TabsContent value="analytics" className="space-y-6">
               <Analytics />
+            </TabsContent>
+
+            <TabsContent value="camera" className="space-y-6">
+              <IpCameraFeed />
             </TabsContent>
           </Tabs>
         </div>
