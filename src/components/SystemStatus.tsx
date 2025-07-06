@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,36 @@ export const SystemStatus: React.FC = () => {
   const { status, isLoading, error, openGate, closeGate, refresh } = useEsp32Status();
   const { exportData, importData, clearAllData } = useOfflineStorage();
   const { toast } = useToast();
+  const [cameraStatus, setCameraStatus] = useState<'online' | 'offline' | 'checking'>('checking');
+
+  // Verificar status da câmera IP
+  useEffect(() => {
+    const checkCameraStatus = async () => {
+      try {
+        // Tentar verificar se consegue acessar a câmera
+        const response = await fetch('http://localhost:8080/camera/status', {
+          method: 'GET',
+          signal: AbortSignal.timeout(3000)
+        });
+        
+        if (response.ok) {
+          setCameraStatus('online');
+        } else {
+          setCameraStatus('offline');
+        }
+      } catch (error) {
+        console.log('Câmera IP não acessível:', error);
+        setCameraStatus('offline');
+      }
+    };
+
+    checkCameraStatus();
+    
+    // Verificar status da câmera a cada 30 segundos
+    const interval = setInterval(checkCameraStatus, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   const handleOpenGate = async () => {
     try {
@@ -86,6 +116,24 @@ export const SystemStatus: React.FC = () => {
     }
   };
 
+  const getCameraStatusText = () => {
+    switch (cameraStatus) {
+      case 'online': return 'Online';
+      case 'offline': return 'Offline';
+      case 'checking': return 'Verificando...';
+      default: return 'Desconhecido';
+    }
+  };
+
+  const getCameraStatusVariant = () => {
+    switch (cameraStatus) {
+      case 'online': return 'default';
+      case 'offline': return 'destructive';
+      case 'checking': return 'secondary';
+      default: return 'secondary';
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -113,12 +161,16 @@ export const SystemStatus: React.FC = () => {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Camera className="h-4 w-4 text-green-500" />
-                <span className="text-sm font-medium">Câmera</span>
+                <Camera className="h-4 w-4 text-orange-500" />
+                <span className="text-sm font-medium">Câmera IP</span>
               </div>
-              <Badge variant="default">Online</Badge>
+              <Badge variant={getCameraStatusVariant()}>
+                {getCameraStatusText()}
+              </Badge>
             </div>
-            <p className="text-xs text-muted-foreground">Plate Recognizer SDK</p>
+            <p className="text-xs text-muted-foreground">
+              {cameraStatus === 'offline' ? 'Não conectada' : 'Reconhecimento de Placas'}
+            </p>
           </div>
 
           <div className="space-y-2">
