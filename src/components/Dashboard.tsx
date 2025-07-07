@@ -8,6 +8,7 @@ import { SystemConfig } from '@/components/SystemConfig';
 import { Analytics } from '@/components/Analytics';
 import { CameraIntegration } from '@/components/CameraIntegration';
 import { IpCameraFeed } from '@/components/IpCameraFeed';
+import { OfflineStatus } from '@/components/OfflineStatus';
 
 export const Dashboard: React.FC = () => {
   console.log('Dashboard component rendering...');
@@ -20,6 +21,7 @@ export const Dashboard: React.FC = () => {
             Dashboard ESP32 - Sistema de Controle Avançado
           </h1>
           
+          <OfflineStatus />
           <Tabs defaultValue="overview" className="w-full">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="overview">Visão Geral</TabsTrigger>

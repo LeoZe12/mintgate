@@ -1,0 +1,58 @@
+{
+  "name": "MintGate - Sistema de Controle de Acesso",
+  "short_name": "MintGate",
+  "description": "Sistema inteligente de reconhecimento de placas para controle de acesso residencial",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "pt-BR",
+  "categories": ["business", "utilities", "security"],
+  "icons": [
+    {
+      "src": "/placeholder.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/placeholder.svg",
+      "sizes": "512x512", 
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Visão Geral",
+      "short_name": "Dashboard",
+      "description": "Acessar dashboard principal",
+      "url": "/?tab=overview",
+      "icons": [{ "src": "/placeholder.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Câmera",
+      "short_name": "Camera", 
+      "description": "Ver feed da câmera",
+      "url": "/?tab=camera",
+      "icons": [{ "src": "/placeholder.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Histórico",
+      "short_name": "Histórico",
+      "description": "Ver histórico de acesso",
+      "url": "/?tab=history",
+      "icons": [{ "src": "/placeholder.svg", "sizes": "96x96" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "features": [
+    "camera",
+    "offline-support",
+    "background-sync",
+    "push-notifications"
+  ]
+}
