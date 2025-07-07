@@ -7,16 +7,8 @@ global.fetch = jest.fn();
 // Mock da configuração
 jest.mock('@/config/esp32Config', () => ({
   ESP32_CONFIG: {
-    platRecognizerOffline: {
-      endpoint: 'http://localhost:8081/v1/plate-reader/',
-      apiToken: 'test-token',
-    },
-    platRecognizer: {
-      confidenceThreshold: 0.8,
-      regions: ['br'],
-    },
-    esp32: {
-      debugMode: false,
+    camera: {
+      url: 'rtsp://admin:senha@192.168.1.100:554/stream',
     },
   },
 }));
@@ -41,10 +33,9 @@ describe('PlateRecognizerOfflineService', () => {
       const result = await service.testConnection();
       expect(result).toBe(true);
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:8081/health',
+        'http://localhost:8080/health',
         expect.objectContaining({
           method: 'GET',
-          headers: { 'Authorization': 'Token test-token' },
         })
       );
     });
@@ -61,17 +52,11 @@ describe('PlateRecognizerOfflineService', () => {
     const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
     
     const mockSuccessResponse = {
-      processing_time: 0.5,
-      results: [
-        {
-          plate: 'ABC1234',
-          confidence: 0.95,
-          region: { code: 'br', score: 0.9 },
-          vehicle: { type: 'Car' },
-        },
-      ],
-      filename: 'test.jpg',
-      version: 1,
+      plate: 'ABC1234',
+      confidence: 0.95,
+      region: 'br',
+      vehicle_type: 'car',
+      image: 'base64encodedimage',
       timestamp: '2023-01-01T00:00:00Z',
     };
 
@@ -86,45 +71,20 @@ describe('PlateRecognizerOfflineService', () => {
       
       expect(result).toEqual(mockSuccessResponse);
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:8081/v1/plate-reader/',
+        'http://localhost:8080/v1/plate-reader',
         expect.objectContaining({
           method: 'POST',
-          headers: { 'Authorization': 'Token test-token' },
         })
       );
     });
 
-    it('deve filtrar resultados por confidence threshold', async () => {
-      const responseWithLowConfidence = {
-        ...mockSuccessResponse,
-        results: [
-          { plate: 'ABC1234', confidence: 0.95, region: { code: 'br', score: 0.9 } },
-          { plate: 'XYZ5678', confidence: 0.5, region: { code: 'br', score: 0.8 } }, // Abaixo do threshold
-        ],
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: jest.fn().mockResolvedValue(responseWithLowConfidence),
-      } as any);
-
-      const result = await service.recognizePlate(mockFile);
-      
-      expect(result.results).toHaveLength(1);
-      expect(result.results[0].plate).toBe('ABC1234');
-    });
-
     it('deve lançar erro quando a resposta não for ok', async () => {
-      const errorResponse = {
-        error: 'Invalid image format',
-        details: 'Only JPEG, PNG and WebP are supported',
-      };
+      const errorResponse = 'Invalid image format';
 
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 400,
-        json: jest.fn().mockResolvedValue(errorResponse),
+        text: jest.fn().mockResolvedValue(errorResponse),
       } as any);
 
       await expect(service.recognizePlate(mockFile)).rejects.toThrow(
@@ -150,7 +110,7 @@ describe('PlateRecognizerOfflineService', () => {
 
   describe('updateEndpoint', () => {
     it('deve atualizar o endpoint base', () => {
-      const newEndpoint = 'http://192.168.1.100:8080/v1/plate-reader/';
+      const newEndpoint = 'http://192.168.1.100:8080/v1/plate-reader';
       service.updateEndpoint(newEndpoint);
       expect((service as any).baseUrl).toBe(newEndpoint);
     });

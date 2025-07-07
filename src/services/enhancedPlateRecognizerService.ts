@@ -1,3 +1,4 @@
+
 import { plateRecognizerOfflineService } from './plateRecognizerOfflineService';
 import { plateCacheService } from './plateCache';
 import { performanceMetricsService } from './performanceMetrics';
@@ -107,7 +108,7 @@ class EnhancedPlateRecognizerService {
           if (this.config.enableFileLogging) {
             await fileSystemLogger.info('Resultado encontrado no cache', {
               filename: file.name,
-              plate: cachedResult.results[0]?.plate,
+              plate: cachedResult.plate,
             });
           }
 
@@ -124,43 +125,40 @@ class EnhancedPlateRecognizerService {
       // Processar com SDK offline apenas
       const result = await exponentialBackoffService.executeWithAbortSignal(
         async (signal) => {
-          return await plateRecognizerOfflineService.recognizePlate(file, {
-            regions: this.config.regions,
-          });
+          return await plateRecognizerOfflineService.recognizePlate(file);
         },
         this.config.timeoutMs,
         this.config.retryConfig
       );
 
-      // Filtrar por threshold de confiança
-      const filteredResult = {
-        ...result,
-        results: result.results.filter(r => r.confidence >= this.config.confidenceThreshold)
-      };
+      // Verificar threshold de confiança
+      if (result.confidence < this.config.confidenceThreshold) {
+        throw new Error(`Confiança muito baixa: ${result.confidence}`);
+      }
 
       // Salvar no cache
-      if (this.config.useCache && filteredResult.results.length > 0) {
-        await plateCacheService.cacheResult(file, filteredResult);
+      if (this.config.useCache && result.plate) {
+        await plateCacheService.cacheResult(file, result);
       }
 
       // Log do resultado
       if (this.config.enableFileLogging) {
         await fileSystemLogger.info('Placa reconhecida com sucesso', {
           filename: file.name,
-          plates: filteredResult.results.map(r => r.plate),
-          processingTime: result.processing_time,
+          plate: result.plate,
+          confidence: result.confidence,
         });
       }
 
       // Finalizar métricas
       if (this.config.enableMetrics) {
         performanceMetricsService.endOperation(operationId, 'Plate Recognition', true, undefined, {
-          platesFound: filteredResult.results.length,
-          processingTime: result.processing_time,
+          plateFound: result.plate,
+          confidence: result.confidence,
         });
       }
 
-      return filteredResult;
+      return result;
 
     } catch (error) {
       // Log do erro
