@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Camera, RefreshCw, AlertCircle, Settings, Terminal, ExternalLink, Info, Link } from 'lucide-react';
+import { Camera, RefreshCw, AlertCircle, Settings, Info, Link } from 'lucide-react';
 import { ESP32_CONFIG } from '@/config/esp32Config';
+import { cameraService } from '@/services/cameraService';
 
 export const IpCameraFeed: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -17,6 +18,7 @@ export const IpCameraFeed: React.FC = () => {
   const [attemptedUrls, setAttemptedUrls] = useState<string[]>([]);
   const [customUrl, setCustomUrl] = useState('rtsp://admin:Leoze0607@192.168.0.10:554/Streaming/Channels/101');
   const [showQuickSetup, setShowQuickSetup] = useState(true);
+  const [workingUrl, setWorkingUrl] = useState<string | null>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
   const originalCameraUrl = customUrl || ESP32_CONFIG.camera.url;
@@ -111,17 +113,53 @@ export const IpCameraFeed: React.FC = () => {
     setCurrentUrlIndex(0);
     setAttemptedUrls([]);
     
-    await tryNextUrl();
+    const result = await cameraService.connectCamera(originalCameraUrl);
+    
+    if (result.success && result.workingUrl) {
+      setWorkingUrl(result.workingUrl);
+      setConnectionStatus('connected');
+      setHasError(false);
+      
+      if (imgRef.current) {
+        imgRef.current.src = cameraService.generateRefreshedUrl(result.workingUrl);
+      }
+    } else {
+      setHasError(true);
+      setErrorMessage(result.error || 'Erro ao conectar câmera');
+      setConnectionStatus('disconnected');
+    }
+    
+    setIsLoading(false);
   };
 
-  const handleQuickConnect = () => {
+  const handleQuickConnect = async () => {
     if (!customUrl.trim()) {
       setErrorMessage('Por favor, insira uma URL válida');
       return;
     }
+    
     console.log('🚀 Conectando rapidamente com:', customUrl);
+    setIsLoading(true);
+    setConnectionStatus('connecting');
     setShowQuickSetup(false);
-    initializeStream();
+    
+    const result = await cameraService.connectCamera(customUrl);
+    
+    if (result.success && result.workingUrl) {
+      setWorkingUrl(result.workingUrl);
+      setConnectionStatus('connected');
+      setHasError(false);
+      
+      if (imgRef.current) {
+        imgRef.current.src = cameraService.generateRefreshedUrl(result.workingUrl);
+      }
+    } else {
+      setHasError(true);
+      setErrorMessage(result.error || 'Erro ao conectar câmera');
+      setConnectionStatus('disconnected');
+    }
+    
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -146,22 +184,23 @@ export const IpCameraFeed: React.FC = () => {
   const refreshFeed = () => {
     console.log('🔄 Atualizando feed da câmera...');
     setLastRefresh(new Date());
-    if (imgRef.current && connectionStatus === 'connected') {
-      const currentSrc = imgRef.current.src.split('?')[0];
-      imgRef.current.src = `${currentSrc}?t=${Date.now()}`;
+    if (imgRef.current && connectionStatus === 'connected' && workingUrl) {
+      imgRef.current.src = cameraService.generateRefreshedUrl(workingUrl);
     } else {
       initializeStream();
     }
   };
 
   useEffect(() => {
-    if (connectionStatus === 'connected') {
+    if (connectionStatus === 'connected' && workingUrl) {
       const interval = setInterval(() => {
-        refreshFeed();
+        if (imgRef.current) {
+          imgRef.current.src = cameraService.generateRefreshedUrl(workingUrl);
+        }
       }, 2000);
       return () => clearInterval(interval);
     }
-  }, [connectionStatus]);
+  }, [connectionStatus, workingUrl]);
 
   const getStatusColor = () => {
     switch (connectionStatus) {
@@ -346,10 +385,10 @@ export const IpCameraFeed: React.FC = () => {
                 <code className="bg-gray-200 px-2 py-1 rounded">{originalCameraUrl}</code>
               </div>
               
-              {connectionStatus === 'connected' && (
+              {connectionStatus === 'connected' && workingUrl && (
                 <div>
                   <p className="font-semibold text-gray-700">URL Ativa:</p>
-                  <code className="bg-green-100 px-2 py-1 rounded text-green-800">{currentUrl}</code>
+                  <code className="bg-green-100 px-2 py-1 rounded text-green-800">{workingUrl}</code>
                 </div>
               )}
               
@@ -369,10 +408,9 @@ export const IpCameraFeed: React.FC = () => {
               <div>
                 <p className="font-semibold text-gray-700">Dicas de Configuração:</p>
                 <ul className="text-gray-600 space-y-1 mt-1">
-                  <li>• Verifique se a câmera está na mesma rede</li>
-                  <li>• Teste o IP no navegador: http://{new URL(originalCameraUrl).hostname}</li>
-                  <li>• Verifique usuário/senha da câmera</li>
-                  <li>• Algumas câmeras usam portas diferentes (80, 81, 8080)</li>
+                  {cameraService.getTroubleshootingTips().map((tip, index) => (
+                    <li key={index}>• {tip}</li>
+                  ))}
                 </ul>
               </div>
             </div>

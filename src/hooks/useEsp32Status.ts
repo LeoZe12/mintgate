@@ -14,37 +14,23 @@ export const useEsp32Status = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  // Verificar status do ESP32 via USB/Serial
+  // Verificar status do ESP32 (simulado para desenvolvimento)
   const checkStatus = async (): Promise<Esp32Status> => {
     try {
       setIsLoading(true);
       
-      // Comunicação via API local (servidor bridge que se comunica com ESP32 via serial)
-      const response = await fetch(`http://localhost:3001/esp32/status?port=${ESP32_CONFIG.esp32.serialPort}&baud=${ESP32_CONFIG.esp32.baudRate}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        signal: AbortSignal.timeout(ESP32_CONFIG.esp32.timeout),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const heartbeat = new Date().toISOString();
-        
-        setStatus('connected');
-        setLastHeartbeat(heartbeat);
-        setError(null);
-
-        return {
-          connected: true,
-          lastHeartbeat: heartbeat,
-          ...data
-        };
-      }
+      // Para desenvolvimento, simular status conectado após pequeno delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      setStatus('disconnected');
-      return { connected: false };
+      const heartbeat = new Date().toISOString();
+      setStatus('connected');
+      setLastHeartbeat(heartbeat);
+      setError(null);
+
+      return {
+        connected: true,
+        lastHeartbeat: heartbeat,
+      };
     } catch (error) {
       console.error('ESP32 connection error:', error);
       setStatus('disconnected');
@@ -70,15 +56,9 @@ export const useEsp32Status = () => {
 
   const openGate = async () => {
     try {
-      await fetch(`http://localhost:3001/esp32/open?port=${ESP32_CONFIG.esp32.serialPort}&baud=${ESP32_CONFIG.esp32.baudRate}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        signal: AbortSignal.timeout(ESP32_CONFIG.esp32.timeout),
-      });
-
-      console.log('Gate opened successfully via serial port', ESP32_CONFIG.esp32.serialPort);
+      // Simular abertura do portão para desenvolvimento
+      console.log('🚪 Portão aberto via ESP32 (simulado)', ESP32_CONFIG.esp32.serialPort);
+      await new Promise(resolve => setTimeout(resolve, 500));
     } catch (error) {
       console.error('Error opening gate:', error);
       throw error;
@@ -87,15 +67,9 @@ export const useEsp32Status = () => {
 
   const closeGate = async () => {
     try {
-      await fetch(`http://localhost:3001/esp32/close?port=${ESP32_CONFIG.esp32.serialPort}&baud=${ESP32_CONFIG.esp32.baudRate}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        signal: AbortSignal.timeout(ESP32_CONFIG.esp32.timeout),
-      });
-
-      console.log('Gate closed successfully via serial port', ESP32_CONFIG.esp32.serialPort);
+      // Simular fechamento do portão para desenvolvimento
+      console.log('🚪 Portão fechado via ESP32 (simulado)', ESP32_CONFIG.esp32.serialPort);
+      await new Promise(resolve => setTimeout(resolve, 500));
     } catch (error) {
       console.error('Error closing gate:', error);
       throw error;

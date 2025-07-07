@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Camera, Eye, EyeOff, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { usePlateRecognition } from '@/hooks/usePlateRecognition';
 import { useToast } from '@/hooks/use-toast';
+import { cameraService } from '@/services/cameraService';
 
 interface LivePlateRecognitionProps {
   cameraUrl: string;
@@ -95,18 +96,9 @@ export const LivePlateRecognition: React.FC<LivePlateRecognitionProps> = ({
 
   const captureFromCamera = async (): Promise<Blob | null> => {
     try {
-      // Gerar URL com timestamp para evitar cache
-      const captureUrl = `${cameraUrl}?t=${Date.now()}`;
-      
-      const response = await fetch(captureUrl, {
-        signal: AbortSignal.timeout(10000)
-      });
-
-      if (response.ok) {
-        return await response.blob();
-      }
-      
-      return null;
+      // Usar o serviço de câmera para capturar imagem
+      const imageBlob = await cameraService.captureImage(cameraUrl);
+      return imageBlob;
     } catch (error) {
       console.error('Erro ao capturar da câmera:', error);
       return null;
