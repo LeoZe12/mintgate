@@ -1,43 +1,28 @@
 
 import { useCallback } from 'react';
 import { plateRecognizerOfflineService, type PlateRecognizerOfflineResponse } from '@/services/plateRecognizerOfflineService';
-import { ESP32_CONFIG } from '@/config/esp32Config';
 
 export interface PlateRecognitionResult {
-  results: Array<{
-    plate: string;
-    confidence: number;
-    region?: {
-      code: string;
-    };
-    vehicle?: {
-      type: string;
-    };
-  }>;
-  processing_time: number;
-  filename: string;
+  plate: string;
+  confidence: number;
+  region: string;
+  vehicle_type: string;
+  timestamp: string;
 }
 
 export const usePlateRecognizer = () => {
   const recognizePlate = useCallback(async (imageFile: File): Promise<PlateRecognitionResult> => {
-    const { enhancedPlateRecognizerService } = await import('@/services/enhancedPlateRecognizerService');
-    
-    if (ESP32_CONFIG.esp32.debugMode) {
-      console.log('🔍 Iniciando reconhecimento com SDK offline...');
-    }
+    console.log('🔍 Iniciando reconhecimento com SDK offline...');
 
     try {
-      const result = await enhancedPlateRecognizerService.recognizePlateEnhanced(imageFile);
+      const result = await plateRecognizerOfflineService.recognizePlate(imageFile);
 
       return {
-        results: result.results.map((r: any) => ({
-          plate: r.plate,
-          confidence: r.confidence,
-          region: r.region ? { code: r.region.code } : undefined,
-          vehicle: r.vehicle ? { type: r.vehicle.type } : undefined,
-        })),
-        processing_time: result.processing_time,
-        filename: result.filename,
+        plate: result.plate,
+        confidence: result.confidence,
+        region: result.region,
+        vehicle_type: result.vehicle_type,
+        timestamp: result.timestamp,
       };
     } catch (error) {
       console.error('Erro no reconhecimento de placas:', error);
@@ -48,11 +33,7 @@ export const usePlateRecognizer = () => {
   const testConnection = useCallback(async (): Promise<boolean> => {
     try {
       const isOnline = await plateRecognizerOfflineService.testConnection();
-      
-      if (ESP32_CONFIG.esp32.debugMode) {
-        console.log('🔗 Status SDK Offline:', isOnline ? 'Online' : 'Offline');
-      }
-      
+      console.log('🔗 Status SDK Offline:', isOnline ? 'Online' : 'Offline');
       return isOnline;
     } catch (error) {
       console.error('Erro ao testar conexão:', error);
@@ -68,6 +49,6 @@ export const usePlateRecognizer = () => {
     recognizePlate,
     testConnection,
     updateEndpoint,
-    currentEndpoint: ESP32_CONFIG.platRecognizerOffline.endpoint,
+    currentEndpoint: 'http://localhost:8080/v1/plate-reader',
   };
 };

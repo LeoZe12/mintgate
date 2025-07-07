@@ -26,12 +26,12 @@ export const usePlateRecognition = () => {
     imageFile: File
   ): Promise<PlateRecognitionResult> => {
     try {
-      console.log('🔍 Iniciando reconhecimento de placa (modo offline)...');
+      console.log('🔍 Iniciando reconhecimento de placa...');
       
-      // 1. Reconhecer placa na imagem
+      // 1. Reconhecer placa na imagem usando SDK Offline
       const recognitionResult = await recognizePlate(imageFile);
       
-      if (!recognitionResult.results || recognitionResult.results.length === 0) {
+      if (!recognitionResult.plate) {
         const result: PlateRecognitionResult = {
           plateNumber: '',
           confidence: 0,
@@ -40,7 +40,6 @@ export const usePlateRecognition = () => {
           reason: 'Nenhuma placa detectada na imagem'
         };
 
-        // Registrar tentativa de acesso negada
         await logAccess({
           plate: 'UNKNOWN',
           access_granted: false,
@@ -51,13 +50,12 @@ export const usePlateRecognition = () => {
         return result;
       }
 
-      const detectedPlate = recognitionResult.results[0];
-      const plateNumber = detectedPlate.plate.toUpperCase();
-      const confidence = detectedPlate.confidence;
+      const plateNumber = recognitionResult.plate.toUpperCase();
+      const confidence = recognitionResult.confidence;
 
-      console.log('📋 Placa detectada (offline):', plateNumber, 'Confiança:', confidence);
+      console.log('📋 Placa detectada:', plateNumber, 'Confiança:', confidence);
 
-      // 2. Verificar se a placa está cadastrada localmente
+      // 2. Verificar se a placa está cadastrada
       const registeredPlate = await findPlateByNumber(plateNumber);
       
       let result: PlateRecognitionResult;
@@ -77,7 +75,7 @@ export const usePlateRecognition = () => {
           reason: `Acesso autorizado para apartamento ${registeredPlate.apartment_number}`
         };
 
-        console.log('✅ Acesso autorizado (offline) para:', result.apartmentNumber);
+        console.log('✅ Acesso autorizado para:', result.apartmentNumber);
 
         // 3. Abrir portão
         try {
@@ -107,7 +105,7 @@ export const usePlateRecognition = () => {
           reason: 'Placa não cadastrada no sistema'
         };
 
-        console.log('❌ Acesso negado (offline) - Placa não cadastrada:', plateNumber);
+        console.log('❌ Acesso negado - Placa não cadastrada:', plateNumber);
 
         // Registrar tentativa de acesso negada
         await logAccess({
@@ -121,7 +119,7 @@ export const usePlateRecognition = () => {
       return result;
 
     } catch (error) {
-      console.error('❌ Erro no processamento de reconhecimento (offline):', error);
+      console.error('❌ Erro no processamento de reconhecimento:', error);
       
       const result: PlateRecognitionResult = {
         plateNumber: '',
@@ -131,7 +129,6 @@ export const usePlateRecognition = () => {
         reason: `Erro no processamento: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
       };
 
-      // Registrar erro
       try {
         await logAccess({
           plate: 'ERROR',
