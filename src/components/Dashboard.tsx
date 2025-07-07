@@ -7,6 +7,7 @@ import { EventHistory } from '@/components/EventHistory';
 import { SystemConfig } from '@/components/SystemConfig';
 import { Analytics } from '@/components/Analytics';
 import { CameraIntegration } from '@/components/CameraIntegration';
+import { IpCameraFeed } from '@/components/IpCameraFeed';
 
 export const Dashboard: React.FC = () => {
   console.log('Dashboard component rendering...');
@@ -29,7 +30,10 @@ export const Dashboard: React.FC = () => {
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
-              <SystemStatus />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <SystemStatus />
+                <IpCameraFeed />
+              </div>
             </TabsContent>
 
             <TabsContent value="camera" className="space-y-6">
