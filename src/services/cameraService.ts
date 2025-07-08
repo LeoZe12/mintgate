@@ -71,38 +71,68 @@ export class CameraService {
 
   async testCameraViaProxy(originalUrl: string): Promise<{ success: boolean; workingUrl?: string; error?: string }> {
     try {
-      console.log('🌐 Testando câmera via proxy backend...');
+      console.log('🌐 Testando câmera via proxy RTSP local...');
       
-      const response = await fetch('https://pijywwisqjcwrkehjelks.supabase.co/functions/v1/camera-proxy', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpanl3d2lzcWpjd3JrZWhlbGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3MzY0MjMsImV4cCI6MjA2NjMxMjQyM30.usfgcSJkWJ-rGgjQ6GlC6F2DQ0FlvClM94zHpLzsI3g',
-        },
-        body: JSON.stringify({
-          cameraUrl: originalUrl,
-          action: 'test'
-        })
+      // Primeiro verifica se o proxy RTSP local está disponível
+      const healthCheck = await fetch('http://localhost:3002/health', {
+        method: 'GET',
+        signal: AbortSignal.timeout(3000)
       });
       
-      const result = await response.json();
-      
-      if (result.success) {
-        this.connection = {
-          url: originalUrl,
-          isConnected: true,
-          lastTest: new Date(),
-          workingUrl: result.workingUrl,
-        };
-        return { success: true, workingUrl: result.workingUrl };
-      } else {
-        this.connection = {
-          url: originalUrl,
-          isConnected: false,
-          lastTest: new Date(),
-        };
-        return { success: false, error: result.error };
+      if (!healthCheck.ok) {
+        return { success: false, error: 'Proxy RTSP local não está disponível na porta 3002' };
       }
+      
+      // Se for URL RTSP, usa o proxy local para converter para MJPEG
+      if (originalUrl.startsWith('rtsp://')) {
+        const proxyUrl = `http://localhost:3002/stream/mjpeg?url=${encodeURIComponent(originalUrl)}`;
+        console.log(`🔄 Testando via proxy RTSP: ${proxyUrl}`);
+        
+        try {
+          const response = await fetch(proxyUrl, {
+            method: 'HEAD',
+            signal: AbortSignal.timeout(8000)
+          });
+          
+          if (response.ok) {
+            this.connection = {
+              url: originalUrl,
+              isConnected: true,
+              lastTest: new Date(),
+              workingUrl: proxyUrl,
+            };
+            return { success: true, workingUrl: proxyUrl };
+          }
+        } catch (error) {
+          console.log('❌ Proxy RTSP falhou:', error);
+        }
+      }
+      
+      // Para URLs HTTP, testa direto
+      const alternativeUrls = this.generateAlternativeUrls(originalUrl);
+      for (const testUrl of alternativeUrls) {
+        try {
+          const response = await fetch(testUrl, {
+            method: 'HEAD',
+            signal: AbortSignal.timeout(5000)
+          });
+          
+          if (response.ok) {
+            this.connection = {
+              url: originalUrl,
+              isConnected: true,
+              lastTest: new Date(),
+              workingUrl: testUrl,
+            };
+            return { success: true, workingUrl: testUrl };
+          }
+        } catch (error) {
+          console.log(`❌ URL falhou: ${testUrl}`);
+        }
+      }
+      
+      return { success: false, error: 'Nenhuma URL da câmera funcionou' };
+      
     } catch (error) {
       console.error('Erro no proxy da câmera:', error);
       return { success: false, error: `Erro no proxy: ${error instanceof Error ? error.message : 'Erro desconhecido'}` };
@@ -180,24 +210,7 @@ export class CameraService {
     if (!targetUrl) return null;
 
     try {
-      // Primeiro tenta via proxy para evitar CORS
-      const proxyResponse = await fetch('https://pijywwisqjcwrkehjelks.supabase.co/functions/v1/camera-proxy', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpanl3d2lzcWpjd3JrZWhlbGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3MzY0MjMsImV4cCI6MjA2NjMxMjQyM30.usfgcSJkWJ-rGgjQ6GlC6F2DQ0FlvClM94zHpLzsI3g',
-        },
-        body: JSON.stringify({
-          cameraUrl: targetUrl,
-          action: 'capture'
-        })
-      });
-
-      if (proxyResponse.ok) {
-        return await proxyResponse.blob();
-      }
-
-      // Fallback para método direto
+      // Método direto para capturar imagem
       const refreshedUrl = this.generateRefreshedUrl(targetUrl);
       const response = await fetch(refreshedUrl, {
         signal: AbortSignal.timeout(10000),
