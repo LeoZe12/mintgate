@@ -33,6 +33,6 @@ if not exist "node_modules" (
 
 REM Inicia o servidor proxy
 echo 🚀 Iniciando servidor proxy na porta 3002...
-node ../scripts/rtsp-proxy-server.js
+node ../scripts/rtsp-proxy-server.cjs
 
 pause
