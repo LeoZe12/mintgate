@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Camera, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { cameraService } from '@/services/cameraService';
 
 interface CameraSetupProps {
   onCameraConfigured: (url: string) => void;
@@ -13,7 +14,7 @@ interface CameraSetupProps {
 }
 
 export const CameraSetup: React.FC<CameraSetupProps> = ({ onCameraConfigured, currentUrl }) => {
-  const [url, setUrl] = useState(currentUrl || '');
+  const [url, setUrl] = useState(currentUrl || 'rtsp://admin:Leoze0607@192.168.0.10:554/Streaming/Channels/101');
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const { toast } = useToast();
@@ -32,35 +33,22 @@ export const CameraSetup: React.FC<CameraSetupProps> = ({ onCameraConfigured, cu
     setConnectionStatus('testing');
 
     try {
-      // Testar diferentes formatos de URL
-      const testUrls = generateTestUrls(url);
+      console.log('🎥 Testando conexão da câmera com serviço avançado...');
       
-      for (const testUrl of testUrls) {
-        try {
-          console.log(`🔍 Testando: ${testUrl}`);
-          const response = await fetch(testUrl, {
-            method: 'HEAD',
-            signal: AbortSignal.timeout(5000)
-          });
-          
-          if (response.ok) {
-            setConnectionStatus('success');
-            onCameraConfigured(testUrl);
-            
-            toast({
-              title: "Câmera Conectada!",
-              description: `Câmera configurada com sucesso em ${new URL(testUrl).hostname}`,
-            });
-            
-            return;
-          }
-        } catch (error) {
-          console.log(`❌ Falhou: ${testUrl}`);
-        }
+      // Usar o serviço de câmera que tem proxy backend e múltiplas tentativas
+      const result = await cameraService.connectCamera(url);
+      
+      if (result.success && result.workingUrl) {
+        setConnectionStatus('success');
+        onCameraConfigured(result.workingUrl);
+        
+        toast({
+          title: "Câmera Conectada!",
+          description: `Câmera configurada com sucesso. URL funcional encontrada.`,
+        });
+      } else {
+        throw new Error(result.error || 'Falha na conexão da câmera');
       }
-      
-      // Se chegou aqui, nenhuma URL funcionou
-      throw new Error('Nenhuma configuração de câmera funcionou');
       
     } catch (error) {
       console.error('Erro ao conectar câmera:', error);
@@ -68,7 +56,7 @@ export const CameraSetup: React.FC<CameraSetupProps> = ({ onCameraConfigured, cu
       
       toast({
         title: "Erro de Conexão",
-        description: "Não foi possível conectar à câmera. Verifique a URL e se a câmera está acessível na rede.",
+        description: error instanceof Error ? error.message : "Erro desconhecido ao conectar câmera",
         variant: "destructive",
       });
     } finally {
@@ -76,31 +64,6 @@ export const CameraSetup: React.FC<CameraSetupProps> = ({ onCameraConfigured, cu
     }
   };
 
-  const generateTestUrls = (originalUrl: string): string[] => {
-    try {
-      const url = new URL(originalUrl);
-      const host = url.hostname;
-      const username = url.username;
-      const password = url.password;
-      const auth = username && password ? `${username}:${password}@` : '';
-      
-      return [
-        // URLs HTTP diretas
-        `http://${auth}${host}/Streaming/Channels/101/picture`,
-        `http://${auth}${host}/snapshot.jpg`,
-        `http://${auth}${host}/cgi-bin/snapshot.cgi`,
-        `http://${auth}${host}/image/jpeg.cgi`,
-        `http://${auth}${host}/video.mjpg`,
-        
-        // URLs com portas alternativas
-        `http://${auth}${host}:80/snapshot.jpg`,
-        `http://${auth}${host}:8080/snapshot.jpg`,
-        `http://${auth}${host}:81/snapshot.jpg`,
-      ];
-    } catch (error) {
-      return [originalUrl];
-    }
-  };
 
   const getStatusIcon = () => {
     switch (connectionStatus) {
