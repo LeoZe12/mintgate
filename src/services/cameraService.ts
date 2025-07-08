@@ -73,19 +73,24 @@ export class CameraService {
     try {
       console.log('🌐 Testando câmera via proxy RTSP local...');
       
-      // Primeiro verifica se o proxy RTSP local está disponível
-      const healthCheck = await fetch('http://localhost:3002/health', {
+      // Determina o host do proxy baseado na URL atual
+      const currentHost = window.location.hostname;
+      const proxyHost = currentHost === 'localhost' || currentHost === '127.0.0.1' ? 'localhost' : currentHost;
+      const proxyBaseUrl = `http://${proxyHost}:3002`;
+      
+      // Primeiro verifica se o proxy RTSP está disponível
+      const healthCheck = await fetch(`${proxyBaseUrl}/health`, {
         method: 'GET',
         signal: AbortSignal.timeout(3000)
       });
       
       if (!healthCheck.ok) {
-        return { success: false, error: 'Proxy RTSP local não está disponível na porta 3002' };
+        return { success: false, error: `Proxy RTSP não está disponível em ${proxyHost}:3002` };
       }
       
-      // Se for URL RTSP, usa o proxy local para converter para MJPEG
+      // Se for URL RTSP, usa o proxy para converter para MJPEG
       if (originalUrl.startsWith('rtsp://')) {
-        const proxyUrl = `http://localhost:3002/stream/mjpeg?url=${encodeURIComponent(originalUrl)}`;
+        const proxyUrl = `${proxyBaseUrl}/stream/mjpeg?url=${encodeURIComponent(originalUrl)}`;
         console.log(`🔄 Testando via proxy RTSP: ${proxyUrl}`);
         
         try {
